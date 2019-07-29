@@ -29,11 +29,11 @@
 import UIKit
 import AVFoundation
 
-protocol AudioCaptureDelegate: class {
-    func didFinishRecording(_ capture: AudioCapture, _ success: Bool, _ timestamp: CMTime)
+public protocol AudioCaptureDelegate: class {
+    func didFinishRecording(_ capture: AudioCapture, _ success: Bool, _ duration: Double)
 }
 
-class AudioCapture: NSObject {
+public class AudioCapture: NSObject {
     // weak var delegate = AudioCaptureDelegate?
     var recordingSession: AVAudioSession!
     var recorder: AVAudioRecorder!
@@ -41,8 +41,10 @@ class AudioCapture: NSObject {
     
     var permissionGranted = false
     var isPlaying = false
+    var recordingStarted = false
     var audioIsReady = false
-    var time = CACurrentMediaTime()
+    var recordingTime = CACurrentMediaTime()
+    var elapsed = 0.0
     
     let sessionQueue = DispatchQueue(label: "Audio queue")
     var audioSettings = RecordSettings()
@@ -126,7 +128,7 @@ class AudioCapture: NSObject {
         }
     }
     
-    public func configAudio(_ settings: RecordSettings, _ audioURL: URL) -> Bool {
+    func configAudio(_ settings: RecordSettings, _ audioURL: URL) -> Bool {
         guard permissionGranted else {return false}
         // Recording session setup
         recordingSession = AVAudioSession.sharedInstance()
@@ -172,6 +174,11 @@ class AudioCapture: NSObject {
         } else {
             isPlaying = true
             recorder.record()
+            recordingTime = CACurrentMediaTime()
+
+            if (!recordingStarted) {
+                recordingStarted = true
+            }
         }
     }
     
@@ -182,7 +189,13 @@ class AudioCapture: NSObject {
         } else if (isPlaying) {
             print("Audio already recording")
         } else {
+            isPlaying = true
             recorder.record(forDuration: TimeInterval(ms))
+            recordingTime = CACurrentMediaTime()
+
+            if (!recordingStarted) {
+                recordingStarted = true
+            }
         }
     }
     
@@ -195,6 +208,7 @@ class AudioCapture: NSObject {
         } else {
             isPlaying = false
             recorder.pause()
+            elapsed += (CACurrentMediaTime() - recordingTime)
         }
     }
     
@@ -210,7 +224,8 @@ class AudioCapture: NSObject {
 }
 
 extension AudioCapture: AVAudioRecorderDelegate {
-    func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+    public func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
         // Handler for finished audio recording
+        delegate?.didFinishRecording(self, true, (CACurrentMediaTime() - self.recordingTime + elapsed))
     }
 }
