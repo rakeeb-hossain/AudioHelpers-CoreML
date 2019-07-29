@@ -11,9 +11,10 @@
 		79EB774B22EB8CA30020872F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB774A22EB8CA30020872F /* ViewController.swift */; };
 		79EB774E22EB8CA30020872F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 79EB774C22EB8CA30020872F /* Main.storyboard */; };
 		79EB775022EB8CA30020872F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 79EB774F22EB8CA30020872F /* Assets.xcassets */; };
-		79EB775322EB8CA30020872F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 79EB775122EB8CA30020872F /* LaunchScreen.storyboard */; };
 		79EB775E22EB8CA40020872F /* AudioHelpers_CoreMLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB775D22EB8CA40020872F /* AudioHelpers_CoreMLTests.swift */; };
 		79EB776922EB8CA40020872F /* AudioHelpers_CoreMLUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB776822EB8CA40020872F /* AudioHelpers_CoreMLUITests.swift */; };
+		79EB777822EB8D190020872F /* AudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB777622EB8D190020872F /* AudioCapture.swift */; };
+		79EB777922EB8D190020872F /* AudioHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB777722EB8D190020872F /* AudioHelpers.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -39,7 +40,6 @@
 		79EB774A22EB8CA30020872F /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		79EB774D22EB8CA30020872F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		79EB774F22EB8CA30020872F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		79EB775222EB8CA30020872F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		79EB775422EB8CA30020872F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		79EB775922EB8CA40020872F /* AudioHelpers-CoreMLTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "AudioHelpers-CoreMLTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		79EB775D22EB8CA40020872F /* AudioHelpers_CoreMLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioHelpers_CoreMLTests.swift; sourceTree = "<group>"; };
@@ -47,6 +47,8 @@
 		79EB776422EB8CA40020872F /* AudioHelpers-CoreMLUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "AudioHelpers-CoreMLUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		79EB776822EB8CA40020872F /* AudioHelpers_CoreMLUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioHelpers_CoreMLUITests.swift; sourceTree = "<group>"; };
 		79EB776A22EB8CA40020872F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		79EB777622EB8D190020872F /* AudioCapture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioCapture.swift; sourceTree = "<group>"; };
+		79EB777722EB8D190020872F /* AudioHelpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioHelpers.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,11 +99,12 @@
 		79EB774722EB8CA30020872F /* AudioHelpers-CoreML */ = {
 			isa = PBXGroup;
 			children = (
+				79EB777622EB8D190020872F /* AudioCapture.swift */,
+				79EB777722EB8D190020872F /* AudioHelpers.swift */,
 				79EB774822EB8CA30020872F /* AppDelegate.swift */,
 				79EB774A22EB8CA30020872F /* ViewController.swift */,
 				79EB774C22EB8CA30020872F /* Main.storyboard */,
 				79EB774F22EB8CA30020872F /* Assets.xcassets */,
-				79EB775122EB8CA30020872F /* LaunchScreen.storyboard */,
 				79EB775422EB8CA30020872F /* Info.plist */,
 			);
 			path = "AudioHelpers-CoreML";
@@ -229,7 +232,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				79EB775322EB8CA30020872F /* LaunchScreen.storyboard in Resources */,
 				79EB775022EB8CA30020872F /* Assets.xcassets in Resources */,
 				79EB774E22EB8CA30020872F /* Main.storyboard in Resources */,
 			);
@@ -257,6 +259,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				79EB774B22EB8CA30020872F /* ViewController.swift in Sources */,
+				79EB777822EB8D190020872F /* AudioCapture.swift in Sources */,
+				79EB777922EB8D190020872F /* AudioHelpers.swift in Sources */,
 				79EB774922EB8CA30020872F /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -299,14 +303,6 @@
 				79EB774D22EB8CA30020872F /* Base */,
 			);
 			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-		79EB775122EB8CA30020872F /* LaunchScreen.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				79EB775222EB8CA30020872F /* Base */,
-			);
-			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
