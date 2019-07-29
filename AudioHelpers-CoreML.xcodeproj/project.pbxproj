@@ -99,9 +99,9 @@
 		79EB774722EB8CA30020872F /* AudioHelpers-CoreML */ = {
 			isa = PBXGroup;
 			children = (
+				79EB774822EB8CA30020872F /* AppDelegate.swift */,
 				79EB777622EB8D190020872F /* AudioCapture.swift */,
 				79EB777722EB8D190020872F /* AudioHelpers.swift */,
-				79EB774822EB8CA30020872F /* AppDelegate.swift */,
 				79EB774A22EB8CA30020872F /* ViewController.swift */,
 				79EB774C22EB8CA30020872F /* Main.storyboard */,
 				79EB774F22EB8CA30020872F /* Assets.xcassets */,

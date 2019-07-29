@@ -29,23 +29,45 @@
 import UIKit
 import AVFoundation
 
+protocol AudioCaptureDelegate: class {
+    func didFinishRecording(_ capture: AudioCapture, _ success: Bool, _ timestamp: CMTime)
+}
+
 class AudioCapture: NSObject {
     // weak var delegate = AudioCaptureDelegate?
     var recordingSession: AVAudioSession!
     var recorder: AVAudioRecorder!
+    weak var delegate: AudioCaptureDelegate?
     
     var permissionGranted = false
     var isPlaying = false
+    var audioIsReady = false
     
     let sessionQueue = DispatchQueue(label: "Audio queue")
+    var audioSettings = [String: Any]()
 
-    public struct CaptureType {}
+    struct RecordSettings {
+        
+    }
+    
+    init(settings: [String: Any]) {
+        super.init()
+        self.audioSettings = settings
+        print(self.audioSettings)
+        setUpAudio { success in
+            if success {
+                self.audioIsReady = true
+            }
+        }
+    }
     
     override init() {
         super.init()
+        self.audioSettings = ["hey": 123]
+        print(self.audioSettings)
         setUpAudio { success in
             if success {
-                // start audio
+                self.audioIsReady = true
             }
         }
     }
@@ -87,7 +109,11 @@ class AudioCapture: NSObject {
         guard permissionGranted else {return false}
         recordingSession = AVAudioSession.sharedInstance()
         do {
+            #if swift(>=4.2)
             try recordingSession.setCategory(AVAudioSession.Category.playAndRecord)
+            #elseif swift(>=4.0)
+            try recordingSession.setCategory(AVAudioSessionCategoryPlayAndRecord)
+            #endif
         } catch {
             print("Setting recording type failed")
             return false
@@ -99,22 +125,23 @@ class AudioCapture: NSObject {
     }
     
     // Starts an indefinite audio recording
-    public func startSample(id: Int) {
+    public func startSample() {
         
     }
     
     // Starts an audio recording of fixed length; terminates automatically
-    public func startSample(ms: Int, id: Int) {
+    public func startSample(ms: Int) {
         
     }
     
-    // Terminates audio recordings of a given ID
-    public func endSample(id: Int) {
+    // Terminates currently playing audio recording
+    public func stopSample() {
         
     }
-    
-    // Terminates all audio recordings
-    public func endAllSamples() {
-        
+}
+
+extension AudioCapture: AVAudioRecorderDelegate {
+    func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
+        // Handler for finished audio recording
     }
 }

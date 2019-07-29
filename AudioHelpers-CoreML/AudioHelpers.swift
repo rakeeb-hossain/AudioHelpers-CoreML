@@ -9,9 +9,7 @@
 import UIKit
 import Accelerate
 
-class AudioHelpers: NSObject {
-        
-    public func fft() {
-        
-    }
+
+public func fft() {
+    
 }
