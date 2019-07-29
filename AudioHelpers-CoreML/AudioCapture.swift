@@ -34,8 +34,6 @@ public protocol AudioCaptureDelegate: class {
 }
 
 public class AudioCapture: NSObject {
-    // weak var delegate = AudioCaptureDelegate?
-    var recordingSession: AVAudioSession!
     var recorder: AVAudioRecorder!
     weak var delegate: AudioCaptureDelegate?
     
@@ -47,21 +45,20 @@ public class AudioCapture: NSObject {
     var elapsed = 0.0
     
     let sessionQueue = DispatchQueue(label: "Audio queue")
-    var audioSettings = RecordSettings()
+    var defaultAudioSettings = RecordSettings()
 
     struct RecordSettings {
-        let format: AudioFormatID = kAudioFormatAppleIMA4
-        let sampleRate: NSNumber = 44100
-        let bitRate: NSNumber = 12800
+        let format: AudioFormatID = kAudioFormatAppleLossless
+        let sampleRate: NSNumber = 44100.2
+        let bitRate: NSNumber = 320000
         let bitDepth: NSNumber = 16
+        let numChannels: Int = 2
         let quality: AVAudioQuality = AVAudioQuality.max
     }
     
     init(settings: RecordSettings, url: String) {
         super.init()
-        self.audioSettings = settings
-        print(self.audioSettings)
-        setUpAudio(self.audioSettings, URL(string: url)!) { success in
+        setUpAudio(settings, URL(string: url)!) { success in
             if success {
                 self.audioIsReady = true
             } else {
@@ -72,9 +69,7 @@ public class AudioCapture: NSObject {
     
     init(settings: RecordSettings) {
         super.init()
-        self.audioSettings = settings
-        print(self.audioSettings)
-        setUpAudio(self.audioSettings, URL(string: Bundle.main.resourcePath!)!) { success in
+        setUpAudio(settings, URL(string: Bundle.main.resourcePath!)!) { success in
             if success {
                 self.audioIsReady = true
             } else {
@@ -83,10 +78,21 @@ public class AudioCapture: NSObject {
         }
     }
     
+    init(url: String) {
+        super.init()
+        setUpAudio(self.defaultAudioSettings, URL(string: url)!) { success in
+            if success {
+                self.audioIsReady = true
+            } else {
+                fatalError()
+            }
+        }
+    }
+
+    
     override init() {
         super.init()
-        print(self.audioSettings)
-        setUpAudio(self.audioSettings, URL(string: Bundle.main.resourcePath!)!) { success in
+        setUpAudio(self.defaultAudioSettings, URL(string: Bundle.main.resourcePath!)!) { success in
             if success {
                 self.audioIsReady = true
             } else {
@@ -99,6 +105,7 @@ public class AudioCapture: NSObject {
         checkPermission()
         sessionQueue.async {
             let success = self.configAudio(settings, audioURL)
+            // Enable this if you are calling setUpAudio from your viewController
             DispatchQueue.main.async {
                 completion(success)
             }
@@ -131,27 +138,28 @@ public class AudioCapture: NSObject {
     func configAudio(_ settings: RecordSettings, _ audioURL: URL) -> Bool {
         guard permissionGranted else {return false}
         // Recording session setup
-        recordingSession = AVAudioSession.sharedInstance()
+        var recordingSession: AVAudioSession = AVAudioSession.sharedInstance()
         do {
             #if swift(>=4.2)
-            try recordingSession.setCategory(AVAudioSession.Category.playAndRecord)
+            try recordingSession.setCategory(AVAudioSession.Category.playAndRecord, mode: AVAudioSession.Mode.default, options: AVAudioSession.CategoryOptions.defaultToSpeaker)
             #elseif swift(>=4.0)
-            try recordingSession.setCategory(AVAudioSessionCategoryPlayAndRecord)
+            try recordingSession.setCategory(AVAudioSessionCategoryPlayAndRecord, mode: AVAudioSessionModeDefault, options: AVAudioSessionCategoryOptions.defaultToSpeaker)
             #endif
             try recordingSession.setActive(true)
         } catch {
             print("Activating record session failed")
             return false
         }
-
+        
         // Recorder setup
         let r_settings = [
             AVFormatIDKey: settings.format,
             AVSampleRateKey: settings.sampleRate,
             AVEncoderBitRateKey: settings.bitRate,
             AVLinearPCMBitDepthKey: settings.bitDepth,
-            AVEncoderAudioQualityKey: settings.quality
-            ] as [String : Any]
+            AVNumberOfChannelsKey: settings.numChannels,
+            AVEncoderAudioQualityKey: settings.quality.rawValue
+        ] as [String : Any]
         
         do {
             try recorder = AVAudioRecorder(url: audioURL, settings: r_settings)
@@ -159,8 +167,8 @@ public class AudioCapture: NSObject {
             print("Could not setup audio recording with the supplied settings and/or output directory")
             return false
         }
-        recorder.isMeteringEnabled = true
-        
+        //recorder.isMeteringEnabled = true
+        recorder.prepareToRecord()
         return true
         
     }
@@ -174,7 +182,9 @@ public class AudioCapture: NSObject {
         } else {
             isPlaying = true
             recorder.record()
+            print("Recording")
             recordingTime = CACurrentMediaTime()
+            elapsed = 0
 
             if (!recordingStarted) {
                 recordingStarted = true
@@ -204,11 +214,12 @@ public class AudioCapture: NSObject {
         if (!audioIsReady) {
             print("Audio must be successfully initialized first")
         } else if (!isPlaying) {
-            print("Audio already paused")
+            print("Audio already paused/stopped")
         } else {
             isPlaying = false
             recorder.pause()
             elapsed += (CACurrentMediaTime() - recordingTime)
+            print(elapsed)
         }
     }
     
@@ -218,7 +229,9 @@ public class AudioCapture: NSObject {
             print("Audio must be successfully initialized first")
         } else {
             isPlaying = false
+            recordingStarted = false
             recorder.stop()
+            print("Stopped")
         }
     }
 }
@@ -226,6 +239,7 @@ public class AudioCapture: NSObject {
 extension AudioCapture: AVAudioRecorderDelegate {
     public func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
         // Handler for finished audio recording
+        print("FINISHED")
         delegate?.didFinishRecording(self, true, (CACurrentMediaTime() - self.recordingTime + elapsed))
     }
 }
