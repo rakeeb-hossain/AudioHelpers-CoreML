@@ -15,7 +15,7 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        audioCapture = AudioCapture(settings: ["Hey": 123])
+        audioCapture = AudioCapture()
         audioCapture.delegate = self as? AudioCaptureDelegate
     }
 }

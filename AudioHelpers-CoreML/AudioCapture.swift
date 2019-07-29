@@ -44,13 +44,17 @@ class AudioCapture: NSObject {
     var audioIsReady = false
     
     let sessionQueue = DispatchQueue(label: "Audio queue")
-    var audioSettings = [String: Any]()
+    var audioSettings = RecordSettings()
 
     struct RecordSettings {
-        
+        let format: AudioFormatID = kAudioFormatAppleIMA4
+        let sampleRate: NSNumber = 32000
+        let bitRate: NSNumber = 12800
+        let bitDepth: NSNumber = 16
+        let quality: AVAudioQuality = AVAudioQuality.medium
     }
     
-    init(settings: [String: Any]) {
+    init(settings: RecordSettings) {
         super.init()
         self.audioSettings = settings
         print(self.audioSettings)
@@ -63,7 +67,6 @@ class AudioCapture: NSObject {
     
     override init() {
         super.init()
-        self.audioSettings = ["hey": 123]
         print(self.audioSettings)
         setUpAudio { success in
             if success {
@@ -125,17 +128,22 @@ class AudioCapture: NSObject {
     }
     
     // Starts an indefinite audio recording
-    public func startSample() {
+    public func startRecording() {
         
     }
     
     // Starts an audio recording of fixed length; terminates automatically
-    public func startSample(ms: Int) {
+    public func startRecording(ms: Int) {
+        
+    }
+    
+    // Pauses currently playing audio recording
+    public func pauseRecording() {
         
     }
     
     // Terminates currently playing audio recording
-    public func stopSample() {
+    public func stopRecording() {
         
     }
 }
