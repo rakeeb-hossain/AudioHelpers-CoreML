@@ -184,9 +184,9 @@ public class AudioCapture: NSObject {
             recorder.record()
             print("Recording")
             recordingTime = CACurrentMediaTime()
-            elapsed = 0
 
             if (!recordingStarted) {
+                elapsed = 0
                 recordingStarted = true
             }
         }
