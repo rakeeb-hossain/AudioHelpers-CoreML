@@ -34,10 +34,16 @@ class ViewController: UIViewController {
     var audioCapture: AudioCapture!
     let filename = "/Users/rakeeb/Desktop/audioFile.m4a"
     
+    let example = 1
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        audioCapture = AudioCapture(url: String(filename))
-        audioCapture.delegate = self
+        if example == 1 {
+            audioCapture = AudioCapture(url: String(filename))
+            audioCapture.delegate = self
+        } else {
+            
+        }
     }
     
     func scheduledTimerInterval() {
