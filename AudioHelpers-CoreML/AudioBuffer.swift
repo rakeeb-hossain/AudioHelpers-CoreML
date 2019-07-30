@@ -112,8 +112,8 @@ class AudioBuffer: NSObject {
         }
     }
     
-    // Starts an audio recording of fixed length; terminates automatically
-    public func startRecording(ms: Int) {
+    // Starts an audio recording of fixed length; this cannot be paused or stopped; terminates automatically
+    public func startRecording(milliseconds: Int, completionHandler: @escaping (Bool) -> Void) {
         if (!isReady) {
             print("Audio must be successfully initialized first")
         } else if (isRecording) {
@@ -128,9 +128,23 @@ class AudioBuffer: NSObject {
                     elapsed = 0
                     recordingStarted = true
                 }
-                print("Recording started...")
+                print("Timed recording started...")
+                
+                DispatchQueue.global().async {
+                    sleep(2)
+                    let status = AudioQueueStop(self.inQueue!, true)
+                    if (status == 0) {
+                        self.isRecording = false
+                        self.recordingStarted = false
+                        print("Stopped timed recording.")
+                        completionHandler(true)
+                    } else {
+                        print("Failed to stop timed recording.")
+                        completionHandler(false)
+                    }
+                }
             } else {
-                print("Failed to start recording")
+                print("Failed to start timed recording.")
             }
         }
     }
@@ -142,7 +156,7 @@ class AudioBuffer: NSObject {
         } else if (!isRecording) {
             print("Audio already paused/stopped")
         } else {
-            let status = AudioQueueStart(inQueue!, nil)
+            let status = AudioQueuePause(inQueue!)
             if (status == 0) {
                 isRecording = false
                 elapsed += (CACurrentMediaTime() - recordingTime)
@@ -159,10 +173,13 @@ class AudioBuffer: NSObject {
         if (!isReady) {
             print("Audio must be successfully initialized first")
         } else {
-            let status = AudioQueueStop(inQueue!, false)
+            let status = AudioQueueStop(inQueue!, true)
             if (status == 0) {
                 isRecording = false
                 recordingStarted = false
+                print("Stopped.")
+            } else {
+                print("Failed to stop.")
             }
         }
     }

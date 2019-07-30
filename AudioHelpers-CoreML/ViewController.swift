@@ -11,9 +11,17 @@ import AVFoundation
 
 class ViewController: UIViewController {
     @IBAction func RecordButton(_ sender: UIButton) {
+        /*
+        audioBuffer.startRecording(milliseconds: 2500) { success in
+            if success {
+                self.timer.invalidate()
+                DispatchQueue.main.sync {
+                    self.TimeLabel.text = "0.00"
+                }
+            }
+        }*/
         audioBuffer.startRecording()
         scheduledTimerInterval()
-        paused = false
     }
     
     @IBAction func StopButton(_ sender: UIButton) {
@@ -25,12 +33,10 @@ class ViewController: UIViewController {
     @IBAction func PauseButton(_ sender: UIButton) {
         timer.invalidate()
         audioBuffer.pauseRecording()
-        paused = true
     }
     
     @IBOutlet weak var TimeLabel: UILabel!
     var timer = Timer()
-    var paused = false
     
     var audioCapture: AudioCapture!
     var audioBuffer: AudioBuffer!
@@ -54,7 +60,7 @@ class ViewController: UIViewController {
     }
     
     @objc func timerUpdate() {
-        if paused {
+        if !audioBuffer.isRecording {
             let len = round(100*(audioBuffer.elapsed - 0.001))/100
             TimeLabel.text = String(len)
         } else{

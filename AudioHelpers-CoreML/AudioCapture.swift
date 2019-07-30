@@ -193,14 +193,14 @@ public class AudioCapture: NSObject {
     }
     
     // Starts an audio recording of fixed length; terminates automatically
-    public func startRecording(ms: Int) {
+    public func startRecording(seconds: Int) {
         if (!audioIsReady) {
             print("Audio must be successfully initialized first")
         } else if (isPlaying) {
             print("Audio already recording")
         } else {
             isPlaying = true
-            recorder.record(forDuration: TimeInterval(ms))
+            recorder.record(forDuration: TimeInterval(seconds))
             recordingTime = CACurrentMediaTime()
 
             if (!recordingStarted) {
