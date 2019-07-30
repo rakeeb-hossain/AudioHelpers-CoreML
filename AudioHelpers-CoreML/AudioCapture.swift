@@ -219,7 +219,7 @@ public class AudioCapture: NSObject {
             isPlaying = false
             recorder.pause()
             elapsed += (CACurrentMediaTime() - recordingTime)
-            print(elapsed)
+            recordingTime = 0
         }
     }
     
