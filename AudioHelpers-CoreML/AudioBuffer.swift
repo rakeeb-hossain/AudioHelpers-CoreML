@@ -8,6 +8,8 @@
 
 import UIKit
 import AVFoundation
+import AudioToolbox
+import CoreAudio
 
 class AudioBuffer: NSObject {
     
@@ -16,14 +18,25 @@ class AudioBuffer: NSObject {
     var audioBuffer: AudioQueueBuffer!
     
     struct BufferRecordSettings {
-        let format: AudioFormatID = kAudioFormatAppleLossless
+        let format: AudioFormatID = kAudioFormatLinearPCM
         let sampleRate: Double = 16000.0
         let bitRate: NSNumber = 320000
         let bitDepth: NSNumber = 16
         let numChannels: Int = 1
         let quality: AVAudioQuality = AVAudioQuality.medium
     }
+    
+    struct AQRecorderState {
+        let mDataFormat: AudioStreamBasicDescription?
+        let mQueue: AudioQueueRef?
+        let mBuffers: [AudioQueueBufferRef]?
+        let bufferByteSize: UInt32?
+        let mCurrentPacket: UInt32?
+        let mIsRunning: Bool?
+    }
+    
     var recordSettings = BufferRecordSettings()
+    var aqData = AQRecorderState(mDataFormat: nil, mQueue: nil, mBuffers: nil, bufferByteSize: nil, mCurrentPacket: nil, mIsRunning: nil)
     
     //func audioQueueInputCallback(ptr: Optional<UnsafeMutableRawPointer>?, queueRef: AudioQueueBufferRef, bufferRef: AudioQueueBufferRef, timePtr: UnsafePointer<AudioTimeStamp>, n: UInt32, packetInfo: Optional<UnsafePointer<AudioStreamPacketDescription>>) -> Void {}
     
@@ -32,23 +45,41 @@ class AudioBuffer: NSObject {
         
         print("Hi")
     }
-    
+
     override init() {
         super.init()
-        self.setUpAudio()
+        setUpAudio()
+        
+        var status = AudioQueueStart(inQueue!, nil)
+        print(status)
+        DispatchQueue.global(qos: .background).async {
+            sleep(4)
+            status = AudioQueueStop(self.inQueue!, true)
+            print(status)
+        }
     }
     
     func setUpAudio() {
         audioStreamFormat = AudioStreamBasicDescription(
             mSampleRate: self.recordSettings.sampleRate,
             mFormatID: self.recordSettings.format,
-            mFormatFlags: 0,
-            mBytesPerPacket: UInt32(self.recordSettings.numChannels * MemoryLayout<UInt32>.size),
+            mFormatFlags: kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked,
+            mBytesPerPacket: 2,
             mFramesPerPacket: 1,
-            mBytesPerFrame: UInt32(self.recordSettings.numChannels * MemoryLayout<UInt32>.size),
-            mChannelsPerFrame: UInt32(self.recordSettings.numChannels),
-            mBitsPerChannel: UInt32(8 * (MemoryLayout<UInt32>.size)),
-            mReserved: UInt32(0))
-        AudioQueueNewInput(&audioStreamFormat, audioQueueInputCallback, nil, nil, nil, 0, &inQueue)
+            mBytesPerFrame: 2,
+            mChannelsPerFrame: 1,
+            mBitsPerChannel: 16,
+            mReserved: 0)
+    
+        let status = AudioQueueNewInput(&audioStreamFormat, audioQueueInputCallback, nil, nil, nil, 0, &inQueue)
+        print(status)
+        self.aqData = AQRecorderState(
+            mDataFormat: audioStreamFormat,
+            mQueue: inQueue!,
+            mBuffers: [AudioQueueBufferRef](),
+            bufferByteSize: 32,
+            mCurrentPacket: 0,
+            mIsRunning: true
+        )
     }
 }

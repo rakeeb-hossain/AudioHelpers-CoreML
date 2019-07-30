@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		790B53B422F0A85700BBD200 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 790B53B222F0A85700BBD200 /* CoreAudio.framework */; };
+		790B53B522F0A85700BBD200 /* CoreAudioKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 790B53B322F0A85700BBD200 /* CoreAudioKit.framework */; };
+		790B53B722F0A86300BBD200 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 790B53B622F0A86300BBD200 /* AudioToolbox.framework */; };
 		792E090F22F0915600C46113 /* AudioBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 792E090E22F0915600C46113 /* AudioBuffer.swift */; };
 		79EB774922EB8CA30020872F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB774822EB8CA30020872F /* AppDelegate.swift */; };
 		79EB774B22EB8CA30020872F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB774A22EB8CA30020872F /* ViewController.swift */; };
@@ -36,6 +39,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		790B53B222F0A85700BBD200 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
+		790B53B322F0A85700BBD200 /* CoreAudioKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioKit.framework; path = System/Library/Frameworks/CoreAudioKit.framework; sourceTree = SDKROOT; };
+		790B53B622F0A86300BBD200 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		792E090E22F0915600C46113 /* AudioBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioBuffer.swift; sourceTree = "<group>"; };
 		79EB774522EB8CA30020872F /* AudioHelpers-CoreML.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "AudioHelpers-CoreML.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		79EB774822EB8CA30020872F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -58,6 +64,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				790B53B722F0A86300BBD200 /* AudioToolbox.framework in Frameworks */,
+				790B53B422F0A85700BBD200 /* CoreAudio.framework in Frameworks */,
+				790B53B522F0A85700BBD200 /* CoreAudioKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +87,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		790B53B122F0A85600BBD200 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				790B53B622F0A86300BBD200 /* AudioToolbox.framework */,
+				790B53B222F0A85700BBD200 /* CoreAudio.framework */,
+				790B53B322F0A85700BBD200 /* CoreAudioKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		79EB773C22EB8CA30020872F = {
 			isa = PBXGroup;
 			children = (
@@ -85,6 +104,7 @@
 				79EB775C22EB8CA40020872F /* AudioHelpers-CoreMLTests */,
 				79EB776722EB8CA40020872F /* AudioHelpers-CoreMLUITests */,
 				79EB774622EB8CA30020872F /* Products */,
+				790B53B122F0A85600BBD200 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};

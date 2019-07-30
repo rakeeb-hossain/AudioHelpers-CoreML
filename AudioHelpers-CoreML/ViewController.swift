@@ -32,17 +32,18 @@ class ViewController: UIViewController {
     var paused = false
     
     var audioCapture: AudioCapture!
+    var audioBuffer: AudioBuffer!
     let filename = "/Users/rakeeb/Desktop/audioFile.m4a"
-    
-    let example = 1
+    let example = 2
     
     override func viewDidLoad() {
         super.viewDidLoad()
         if example == 1 {
             audioCapture = AudioCapture(url: String(filename))
             audioCapture.delegate = self
-        } else {
-            
+        }
+        if example == 2 {
+            audioBuffer = AudioBuffer()
         }
     }
     

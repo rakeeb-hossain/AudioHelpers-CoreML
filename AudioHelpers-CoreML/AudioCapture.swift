@@ -47,7 +47,7 @@ public class AudioCapture: NSObject {
     let sessionQueue = DispatchQueue(label: "Audio queue")
     var defaultAudioSettings = RecordSettings()
 
-    static struct RecordSettings {
+    struct RecordSettings {
         let format: AudioFormatID = kAudioFormatAppleLossless
         let sampleRate: NSNumber = 16000.0
         let bitRate: NSNumber = 320000
