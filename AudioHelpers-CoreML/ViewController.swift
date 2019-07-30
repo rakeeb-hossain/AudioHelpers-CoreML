@@ -47,10 +47,10 @@ class ViewController: UIViewController {
     
     @objc func timerUpdate() {
         if paused {
-            let len = round(100*(audioCapture.elapsed))/100
+            let len = round(100*(audioCapture.elapsed - 0.001))/100
             TimeLabel.text = String(len)
         } else{
-            let len = round(100*(CACurrentMediaTime() - audioCapture.recordingTime + audioCapture.elapsed))/100
+            let len = round(100*(CACurrentMediaTime() - audioCapture.recordingTime + audioCapture.elapsed - 0.001))/100
             TimeLabel.text = String(len)
         }
     }
