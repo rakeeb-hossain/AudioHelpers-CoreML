@@ -11,8 +11,148 @@ import AVFoundation
 import AudioToolbox
 import CoreAudio
 
+struct EffectState {
+    var rioUnit: AudioUnit?
+    var asbd: AudioStreamBasicDescription?
+    var sineFrequency: Float32?
+    var sinePhase: Float32?
+}
+
+func InputModulatingRenderCallback(
+    inRefCon:UnsafeMutableRawPointer,
+    ioActionFlags:UnsafeMutablePointer<AudioUnitRenderActionFlags>,
+    inTimeStamp:UnsafePointer<AudioTimeStamp>,
+    inBusNumber:UInt32,
+    inNumberFrames:UInt32,
+    ioData:UnsafeMutablePointer<AudioBufferList>?) -> OSStatus {
+    
+    
+    return noErr
+}
+
 class AudioBuffer: NSObject {
     
+    var effectState = EffectState(rioUnit: nil, asbd: nil, sineFrequency: nil, sinePhase: nil)
+    
+    override init() {
+        super.init()
+        let status = setupAudio()
+        setupNotifications()
+        
+    }
+    
+    func setupAudio() -> Bool {
+        // Init AVAudioSession
+        var recordingSession: AVAudioSession = AVAudioSession.sharedInstance()
+        var hardwareSampleRate: Double
+        var error: OSStatus
+        do {
+            #if swift(>=4.2)
+            try recordingSession.setCategory(AVAudioSession.Category.playAndRecord, mode: AVAudioSession.Mode.default, options: AVAudioSession.CategoryOptions.defaultToSpeaker)
+            if (!recordingSession.isInputAvailable) {
+                print("Audio input not available")
+                return false
+            }
+            hardwareSampleRate = recordingSession.preferredSampleRate
+            
+            #elseif swift(>=4.0)
+            try recordingSession.setCategory(AVAudioSessionCategoryPlayAndRecord, mode: AVAudioSessionModeDefault, options: AVAudioSessionCategoryOptions.defaultToSpeaker)
+            #endif
+            try recordingSession.setActive(true)
+        } catch {
+            print("Activating record session failed")
+            return false
+        }
+        
+        // Describe the audio unit
+        var audioCompDesc: AudioComponentDescription = AudioComponentDescription()
+        audioCompDesc.componentType = kAudioUnitType_Output
+        audioCompDesc.componentSubType = kAudioUnitSubType_RemoteIO
+        audioCompDesc.componentManufacturer = kAudioUnitManufacturer_Apple
+        audioCompDesc.componentFlags = 0
+        audioCompDesc.componentFlagsMask = 0
+        
+        let rioComponent = AudioComponentFindNext(nil, &audioCompDesc)
+        error = AudioComponentInstanceNew(rioComponent!, &effectState.rioUnit)
+        if (error != 0) {
+            print(String(error) + ": Couldn't get RIO unit instance")
+            return false
+        }
+        
+        // Sets up RIO unit for playback
+        var oneFlag: UInt32 = 1
+        let bus0: AudioUnitElement = 0
+        error = AudioUnitSetProperty(effectState.rioUnit!, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Output, bus0, &oneFlag, UInt32(MemoryLayout.size(ofValue: oneFlag)))
+        
+        // Enable RIO input
+        let bus1: AudioUnitElement = 1
+        error = error | AudioUnitSetProperty(effectState.rioUnit!, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input, bus1, &oneFlag, UInt32(MemoryLayout.size(ofValue: oneFlag)))
+        
+        if (error != 0) {
+            print(String(error) + ": Couldn't enable RIO input/output")
+            return false
+        }
+        
+        var myABSD = AudioStreamBasicDescription()
+        myABSD.mSampleRate = hardwareSampleRate
+        myABSD.mFormatID = kAudioFormatLinearPCM
+        myABSD.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagsNativeEndian | kAudioFormatFlagIsPacked
+        myABSD.mBytesPerPacket = 2
+        myABSD.mFramesPerPacket = 1
+        myABSD.mBytesPerFrame = 2
+        myABSD.mChannelsPerFrame = 1
+        myABSD.mBitsPerChannel = 16
+        
+        error = AudioUnitSetProperty(effectState.rioUnit!, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, bus0, &myABSD, UInt32(MemoryLayout.size(ofValue: myABSD)))
+
+        error = error | AudioUnitSetProperty(effectState.rioUnit!, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, bus0, &myABSD, UInt32(MemoryLayout.size(ofValue: myABSD)))
+
+        if (error != 0) {
+            print(String(error) + ": Couldn't set ASBD for RIO input/output")
+            return false
+        }
+        
+        effectState.asbd = myABSD
+        effectState.sineFrequency = 30
+        effectState.sinePhase = 0
+        
+        var callbackStruct = AURenderCallbackStruct()
+        callbackStruct.inputProc = InputModulatingRenderCallback
+        callbackStruct.inputProcRefCon = nil
+        error = AudioUnitSetProperty(effectState.rioUnit!, kAudioOutputUnitProperty_SetInputCallback, kAudioUnitScope_Global, bus0, &callbackStruct, UInt32(MemoryLayout.size(ofValue: callbackStruct)))
+        
+        if (error != 0) {
+            print(String(error) + ": Couldn't set RIO's input callback on bus 0")
+            return false
+        }
+        // Set format for output (bus 0)
+        return true
+    }
+    
+    /*
+    private let InputModulatingRenderCallback: AURenderCallback? = {  inRefCon, ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, ioData in
+        return(0)
+    }
+ */
+    
+    func setupNotifications() {
+        // Handle interruptions
+        let notificationCenter = NotificationCenter.default
+    }
+    
+    func startRecording() {
+        
+    }
+    
+    func stopRecording() {
+        
+    }
+    
+    
+    
+    
+    
+    /*
     var audioStreamFormat: AudioStreamBasicDescription!
     var inQueue: AudioQueueRef? = nil
     var audioBuffer: AudioQueueBuffer!
@@ -177,4 +317,5 @@ class AudioBuffer: NSObject {
             }
         }
     }
+ */
 }
