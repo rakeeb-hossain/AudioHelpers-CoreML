@@ -34,7 +34,7 @@ class AudioBuffer: NSObject {
     }
     
     var recordSettings = BufferRecordSettings()
-    var aqData = AQRecorderState(mDataFormat: nil, mQueue: nil, mBuffers: nil, bufferByteSize: nil, mCurrentPacket: nil, mIsRunning: nil)
+    var aqData = AQRecorderState(mDataFormat: nil, mQueue: nil, mBuffers: nil, bufferByteSize: nil, mCurrentPacket: nil, mIsRunning: false)
     
     var isReady = false
     var isRecording = false
@@ -52,13 +52,6 @@ class AudioBuffer: NSObject {
     override init() {
         super.init()
         setUpAudio()
-        
-        AudioQueueStart(inQueue!, nil)
-        DispatchQueue.global(qos: .background).async {
-            sleep(4)
-            AudioQueueStop(self.inQueue!, true)
-            AudioQueueFlush(self.inQueue!)
-        }
     }
     
     func setUpAudio() {
@@ -73,6 +66,7 @@ class AudioBuffer: NSObject {
             mBitsPerChannel: 16,
             mReserved: 0)
         
+        print(audioStreamFormat!)
         let status = AudioQueueNewInput(&audioStreamFormat, audioQueueInputCallback, nil, nil, nil, 0, &inQueue)
         
         if (status == 0) {
@@ -83,7 +77,7 @@ class AudioBuffer: NSObject {
                 mBuffers: [AudioQueueBufferRef](),
                 bufferByteSize: 32,
                 mCurrentPacket: 0,
-                mIsRunning: true
+                mIsRunning: false
             )
             isReady = true
         }
@@ -123,7 +117,7 @@ class AudioBuffer: NSObject {
             if (status == 0) {
                 recordingTime = CACurrentMediaTime()
                 isRecording = true
-
+                
                 if (!recordingStarted) {
                     elapsed = 0
                     recordingStarted = true
