@@ -26,7 +26,6 @@ func InputModulatingRenderCallback(
     inNumberFrames:UInt32,
     ioData:UnsafeMutablePointer<AudioBufferList>?) -> OSStatus {
     
-    
     return noErr
 }
 
@@ -53,7 +52,7 @@ class AudioBuffer: NSObject {
                 print("Audio input not available")
                 return false
             }
-            hardwareSampleRate = recordingSession.preferredSampleRate
+            hardwareSampleRate = recordingSession.sampleRate
             
             #elseif swift(>=4.0)
             try recordingSession.setCategory(AVAudioSessionCategoryPlayAndRecord, mode: AVAudioSessionModeDefault, options: AVAudioSessionCategoryOptions.defaultToSpeaker)
@@ -94,7 +93,8 @@ class AudioBuffer: NSObject {
         }
         
         var myABSD = AudioStreamBasicDescription()
-        myABSD.mSampleRate = hardwareSampleRate
+        print(hardwareSampleRate)
+        myABSD.mSampleRate = 16000.0
         myABSD.mFormatID = kAudioFormatLinearPCM
         myABSD.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagsNativeEndian | kAudioFormatFlagIsPacked
         myABSD.mBytesPerPacket = 2
@@ -125,12 +125,21 @@ class AudioBuffer: NSObject {
             print(String(error) + ": Couldn't set RIO's input callback on bus 0")
             return false
         }
+        
+        error = AudioUnitInitialize(effectState.rioUnit!)
+        
+        if (error != 0) {
+            print(String(error) + ": Couldn't initialize the RIO unit")
+            return false
+        }
+        print("Setup successful")
         // Set format for output (bus 0)
         return true
     }
     
     /*
     private let InputModulatingRenderCallback: AURenderCallback? = {  inRefCon, ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, ioData in
+        print("Finished")
         return(0)
     }
  */
@@ -141,11 +150,13 @@ class AudioBuffer: NSObject {
     }
     
     func startRecording() {
-        
+        let status = AudioOutputUnitStart(effectState.rioUnit!)
+        print(status)
     }
     
     func stopRecording() {
-        
+        let status = AudioOutputUnitStop(effectState.rioUnit!)
+        print(status)
     }
     
     

@@ -21,7 +21,7 @@ class ViewController: UIViewController {
             }
         }*/
         audioBuffer.startRecording()
-        scheduledTimerInterval()
+        //scheduledTimerInterval()
     }
     
     @IBAction func StopButton(_ sender: UIButton) {
@@ -32,7 +32,7 @@ class ViewController: UIViewController {
     
     @IBAction func PauseButton(_ sender: UIButton) {
         timer.invalidate()
-        audioBuffer.pauseRecording()
+        //audioBuffer.pauseRecording()
     }
     
     @IBOutlet weak var TimeLabel: UILabel!
@@ -53,7 +53,7 @@ class ViewController: UIViewController {
             audioBuffer = AudioBuffer()
         }
     }
-    
+    /*
     func scheduledTimerInterval() {
         // Set precision and frequency of timer
         timer = Timer.scheduledTimer(timeInterval: 0.1, target: self, selector: Selector("timerUpdate"), userInfo: nil, repeats: true)
@@ -68,6 +68,7 @@ class ViewController: UIViewController {
             TimeLabel.text = String(len)
         }
     }
+ */
 }
 
 extension ViewController: AudioCaptureDelegate {
