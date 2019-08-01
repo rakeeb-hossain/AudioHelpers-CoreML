@@ -39,7 +39,7 @@ class ViewController: UIViewController {
     var timer = Timer()
     
     var audioCapture: AudioCapture!
-    var audioBuffer: AudioBuffer!
+    var audioBuffer: AudioBufferController!
     let filename = "/Users/rakeeb/Desktop/audioFile.m4a"
     let example = 2
     
@@ -50,7 +50,7 @@ class ViewController: UIViewController {
             audioCapture.delegate = self
         }
         if example == 2 {
-            audioBuffer = AudioBuffer()
+            audioBuffer = AudioBufferController()
         }
     }
     /*

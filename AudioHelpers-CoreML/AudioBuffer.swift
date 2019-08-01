@@ -24,6 +24,7 @@ struct EffectState {
     var asbd: CAStreamBasicDescription?
     var sineFrequency: Float32?
     var sinePhase: Float32?
+    var controllerInstance: UnsafeMutableRawPointer?
 }
 
 func InputModulatingRenderCallback(
@@ -34,17 +35,15 @@ func InputModulatingRenderCallback(
     inNumberFrames:UInt32,
     ioData:UnsafeMutablePointer<AudioBufferList>?) -> OSStatus {
     
+    print(inNumberFrames)
     var effectState = inRefCon.assumingMemoryBound(to: EffectState.self)
-    let delegate = unsafeBitCast(inRefCon, to: AURenderCallbackDelegate.self)
-    status = delegate.performRender(ioActionFlags: ioActionFlags, inTimeStamp: inTimeStamp, inBusNumber: inBusNumber, inNumberFrames: inNumberFrames, ioData: ioData!)
-    if (status != 0) {
-        
-    }
+    let delegate = unsafeBitCast(effectState.pointee.controllerInstance!, to: AURenderCallbackDelegate.self)
+    let success = delegate.performRender(ioActionFlags: ioActionFlags, inTimeStamp: inTimeStamp, inBusNumber: inBusNumber, inNumberFrames: inNumberFrames, ioData: ioData!)
     return noErr
 }
 
 @objc (AudioBuffer)
-class AudioBuffer: NSObject, AURenderCallbackDelegate {
+class AudioBufferController: NSObject, AURenderCallbackDelegate {
     
     let dataPtr = UnsafeMutablePointer<EffectState>.allocate(capacity: 1)
 
@@ -151,7 +150,8 @@ class AudioBuffer: NSObject, AURenderCallbackDelegate {
         dataPtr.pointee.asbd = ioFormat
         dataPtr.pointee.sineFrequency = 30
         dataPtr.pointee.sinePhase = 0
-        
+        dataPtr.pointee.controllerInstance = Unmanaged.passUnretained(self).toOpaque()
+
         var callbackStruct = AURenderCallbackStruct(inputProc: InputModulatingRenderCallback, inputProcRefCon: dataPtr)
         error = AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, bus0, &callbackStruct, UInt32(MemoryLayout.size(ofValue: callbackStruct)))
         
@@ -166,23 +166,22 @@ class AudioBuffer: NSObject, AURenderCallbackDelegate {
             print(String(error) + ": Couldn't initialize the RIO unit")
             return false
         }
-        
         print("Setup successful")
 
         return true
     }
     
     func performRender(ioActionFlags: UnsafeMutablePointer<AudioUnitRenderActionFlags>, inTimeStamp: UnsafePointer<AudioTimeStamp>, inBusNumber: UInt32, inNumberFrames: UInt32, ioData: UnsafeMutablePointer<AudioBufferList>) -> OSStatus {
-        let ioPtr = UnsafeMutableAudioBufferListPointer(ioData)
         
+        var ioPtr = UnsafeMutableAudioBufferListPointer(ioData)
         let bus1: UInt32 = 1
         var err = AudioUnitRender(dataPtr.pointee.rioUnit!, ioActionFlags, inTimeStamp, bus1, inNumberFrames, ioData)
         
+        print(inNumberFrames)
         for i in 0..<ioPtr.count {
             memset(ioPtr[i].mData, 0, Int(ioPtr[i].mDataByteSize))
         }
-
-        return err
+        return noErr
     }
     /*
     private let InputModulatingRenderCallback: AURenderCallback? = {  inRefCon, ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, ioData in
