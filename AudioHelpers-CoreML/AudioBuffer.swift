@@ -26,21 +26,35 @@ func InputModulatingRenderCallback(
     inNumberFrames:UInt32,
     ioData:UnsafeMutablePointer<AudioBufferList>?) -> OSStatus {
     
+    var a = AudioBufferList()
+    a.mNumberBuffers = 1
+    a.mBuffers.mData = nil
+    
+    var effectState = inRefCon.assumingMemoryBound(to: EffectState.self)
+    let bus1: UInt32 = 1
+    var error = AudioUnitRender(effectState.pointee.rioUnit!, ioActionFlags, inTimeStamp, bus1, inNumberFrames, &a)
+    
+    if (error != 0) {
+        print(a.mNumberBuffers)
+    }
     return noErr
 }
 
 class AudioBuffer: NSObject {
     
-    var effectState = EffectState(rioUnit: nil, asbd: nil, sineFrequency: nil, sinePhase: nil)
-    
+    let dataPtr = UnsafeMutablePointer<EffectState>.allocate(capacity: 1)
+
     override init() {
         super.init()
-        let status = setupAudio()
+        defer {dataPtr.deallocate()}
+        dataPtr.initialize(to: EffectState())
+        defer {dataPtr.deinitialize(count: 1)}
+
+        let status = setupAudio(dataPtr)
         setupNotifications()
-        
     }
     
-    func setupAudio() -> Bool {
+    func setupAudio(_ dataPtr: UnsafeMutablePointer<EffectState>) -> Bool {
         // Init AVAudioSession
         var recordingSession: AVAudioSession = AVAudioSession.sharedInstance()
         var hardwareSampleRate: Double
@@ -72,7 +86,7 @@ class AudioBuffer: NSObject {
         audioCompDesc.componentFlagsMask = 0
         
         let rioComponent = AudioComponentFindNext(nil, &audioCompDesc)
-        error = AudioComponentInstanceNew(rioComponent!, &effectState.rioUnit)
+        error = AudioComponentInstanceNew(rioComponent!, &dataPtr.pointee.rioUnit)
         if (error != 0) {
             print(String(error) + ": Couldn't get RIO unit instance")
             return false
@@ -81,11 +95,11 @@ class AudioBuffer: NSObject {
         // Sets up RIO unit for playback
         var oneFlag: UInt32 = 1
         let bus0: AudioUnitElement = 0
-        error = AudioUnitSetProperty(effectState.rioUnit!, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Output, bus0, &oneFlag, UInt32(MemoryLayout.size(ofValue: oneFlag)))
+        error = AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Output, bus0, &oneFlag, UInt32(MemoryLayout.size(ofValue: oneFlag)))
         
         // Enable RIO input
         let bus1: AudioUnitElement = 1
-        error = error | AudioUnitSetProperty(effectState.rioUnit!, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input, bus1, &oneFlag, UInt32(MemoryLayout.size(ofValue: oneFlag)))
+        error = error | AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioOutputUnitProperty_EnableIO, kAudioUnitScope_Input, bus1, &oneFlag, UInt32(MemoryLayout.size(ofValue: oneFlag)))
         
         if (error != 0) {
             print(String(error) + ": Couldn't enable RIO input/output")
@@ -103,30 +117,28 @@ class AudioBuffer: NSObject {
         myABSD.mChannelsPerFrame = 1
         myABSD.mBitsPerChannel = 16
         
-        error = AudioUnitSetProperty(effectState.rioUnit!, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, bus0, &myABSD, UInt32(MemoryLayout.size(ofValue: myABSD)))
+        error = AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, bus0, &myABSD, UInt32(MemoryLayout.size(ofValue: myABSD)))
 
-        error = error | AudioUnitSetProperty(effectState.rioUnit!, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, bus0, &myABSD, UInt32(MemoryLayout.size(ofValue: myABSD)))
+        error = error | AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, bus0, &myABSD, UInt32(MemoryLayout.size(ofValue: myABSD)))
 
         if (error != 0) {
             print(String(error) + ": Couldn't set ASBD for RIO input/output")
             return false
         }
         
-        effectState.asbd = myABSD
-        effectState.sineFrequency = 30
-        effectState.sinePhase = 0
+        dataPtr.pointee.asbd = myABSD
+        dataPtr.pointee.sineFrequency = 30
+        dataPtr.pointee.sinePhase = 0
         
-        var callbackStruct = AURenderCallbackStruct()
-        callbackStruct.inputProc = InputModulatingRenderCallback
-        callbackStruct.inputProcRefCon = nil
-        error = AudioUnitSetProperty(effectState.rioUnit!, kAudioOutputUnitProperty_SetInputCallback, kAudioUnitScope_Global, bus0, &callbackStruct, UInt32(MemoryLayout.size(ofValue: callbackStruct)))
+        var callbackStruct = AURenderCallbackStruct(inputProc: InputModulatingRenderCallback, inputProcRefCon: dataPtr)
+        error = AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioOutputUnitProperty_SetInputCallback, kAudioUnitScope_Global, bus0, &callbackStruct, UInt32(MemoryLayout.size(ofValue: callbackStruct)))
         
         if (error != 0) {
             print(String(error) + ": Couldn't set RIO's input callback on bus 0")
             return false
         }
         
-        error = AudioUnitInitialize(effectState.rioUnit!)
+        error = AudioUnitInitialize(dataPtr.pointee.rioUnit!)
         
         if (error != 0) {
             print(String(error) + ": Couldn't initialize the RIO unit")
@@ -150,12 +162,12 @@ class AudioBuffer: NSObject {
     }
     
     func startRecording() {
-        let status = AudioOutputUnitStart(effectState.rioUnit!)
+        let status = AudioOutputUnitStart(dataPtr.pointee.rioUnit!)
         print(status)
     }
     
     func stopRecording() {
-        let status = AudioOutputUnitStop(effectState.rioUnit!)
+        let status = AudioOutputUnitStop(dataPtr.pointee.rioUnit!)
         print(status)
     }
     
