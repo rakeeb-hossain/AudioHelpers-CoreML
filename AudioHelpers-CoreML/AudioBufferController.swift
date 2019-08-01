@@ -46,7 +46,8 @@ func InputModulatingRenderCallback(
 class AudioBufferController: NSObject, AURenderCallbackDelegate {
     
     let dataPtr = UnsafeMutablePointer<EffectState>.allocate(capacity: 1)
-
+    var bufferHelper: BufferHelper!
+    
     override init() {
         super.init()
         defer {dataPtr.deallocate()}
@@ -166,6 +167,8 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
             print(String(error) + ": Couldn't initialize the RIO unit")
             return false
         }
+        
+        bufferHelper = BufferHelper()
         print("Setup successful")
 
         return true
@@ -177,10 +180,22 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
         let bus1: UInt32 = 1
         var err = AudioUnitRender(dataPtr.pointee.rioUnit!, ioActionFlags, inTimeStamp, bus1, inNumberFrames, ioData)
         
-        print(inNumberFrames)
-        for i in 0..<ioPtr.count {
-            memset(ioPtr[i].mData, 0, Int(ioPtr[i].mDataByteSize))
+        print(type(of: ioPtr[0].mData!.assumingMemoryBound(to: Float32.self)))
+        
+        // Looping through audio buffer bytes
+        /*
+        for buffer in ioPtr {
+            let i16bufptr = UnsafeBufferPointer(start: ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), count: Int(inNumberFrames))
+            let arr = Array(i16bufptr)
+            for i in arr {
+                print(i)
+            }
         }
+        */
+        
+        // Removing DC component of audio waveform signal
+        bufferHelper.removeDCInplace(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), numFrames: inNumberFrames)
+
         return noErr
     }
     /*

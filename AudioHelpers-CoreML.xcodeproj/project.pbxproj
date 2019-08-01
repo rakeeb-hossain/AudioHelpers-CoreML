@@ -13,13 +13,14 @@
 		790B53B522F0A85700BBD200 /* CoreAudioKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 790B53B322F0A85700BBD200 /* CoreAudioKit.framework */; };
 		790B53B722F0A86300BBD200 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 790B53B622F0A86300BBD200 /* AudioToolbox.framework */; };
 		792E090F22F0915600C46113 /* AudioBufferController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 792E090E22F0915600C46113 /* AudioBufferController.swift */; };
+		79C5DACA22F37E0500326714 /* DCRejectionFilter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79C5DAC922F37E0500326714 /* DCRejectionFilter.swift */; };
 		79EB774922EB8CA30020872F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB774822EB8CA30020872F /* AppDelegate.swift */; };
 		79EB774B22EB8CA30020872F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB774A22EB8CA30020872F /* ViewController.swift */; };
 		79EB774E22EB8CA30020872F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 79EB774C22EB8CA30020872F /* Main.storyboard */; };
 		79EB775022EB8CA30020872F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 79EB774F22EB8CA30020872F /* Assets.xcassets */; };
 		79EB775E22EB8CA40020872F /* AudioHelpers_CoreMLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB775D22EB8CA40020872F /* AudioHelpers_CoreMLTests.swift */; };
 		79EB776922EB8CA40020872F /* AudioHelpers_CoreMLUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB776822EB8CA40020872F /* AudioHelpers_CoreMLUITests.swift */; };
-		79EB777822EB8D190020872F /* AudioCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB777622EB8D190020872F /* AudioCapture.swift */; };
+		79EB777822EB8D190020872F /* AudioCaptureToFileController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB777622EB8D190020872F /* AudioCaptureToFileController.swift */; };
 		79EB777922EB8D190020872F /* AudioHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB777722EB8D190020872F /* AudioHelpers.swift */; };
 /* End PBXBuildFile section */
 
@@ -47,6 +48,7 @@
 		790B53B322F0A85700BBD200 /* CoreAudioKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioKit.framework; path = System/Library/Frameworks/CoreAudioKit.framework; sourceTree = SDKROOT; };
 		790B53B622F0A86300BBD200 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		792E090E22F0915600C46113 /* AudioBufferController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioBufferController.swift; sourceTree = "<group>"; };
+		79C5DAC922F37E0500326714 /* DCRejectionFilter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DCRejectionFilter.swift; sourceTree = "<group>"; };
 		79EB774522EB8CA30020872F /* AudioHelpers-CoreML.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "AudioHelpers-CoreML.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		79EB774822EB8CA30020872F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		79EB774A22EB8CA30020872F /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -59,7 +61,7 @@
 		79EB776422EB8CA40020872F /* AudioHelpers-CoreMLUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "AudioHelpers-CoreMLUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		79EB776822EB8CA40020872F /* AudioHelpers_CoreMLUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioHelpers_CoreMLUITests.swift; sourceTree = "<group>"; };
 		79EB776A22EB8CA40020872F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		79EB777622EB8D190020872F /* AudioCapture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioCapture.swift; sourceTree = "<group>"; };
+		79EB777622EB8D190020872F /* AudioCaptureToFileController.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioCaptureToFileController.swift; sourceTree = "<group>"; };
 		79EB777722EB8D190020872F /* AudioHelpers.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AudioHelpers.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -127,10 +129,11 @@
 			children = (
 				79EB774822EB8CA30020872F /* AppDelegate.swift */,
 				792E090E22F0915600C46113 /* AudioBufferController.swift */,
-				79EB777622EB8D190020872F /* AudioCapture.swift */,
+				79EB777622EB8D190020872F /* AudioCaptureToFileController.swift */,
 				79EB777722EB8D190020872F /* AudioHelpers.swift */,
 				790A1A7B22F3631800B4B0CE /* CADebugMacros.swift */,
 				790A1A7922F3628C00B4B0CE /* CAStreamBasicDescription.swift */,
+				79C5DAC922F37E0500326714 /* DCRejectionFilter.swift */,
 				79EB774A22EB8CA30020872F /* ViewController.swift */,
 				79EB774C22EB8CA30020872F /* Main.storyboard */,
 				79EB774F22EB8CA30020872F /* Assets.xcassets */,
@@ -289,7 +292,8 @@
 			files = (
 				79EB774B22EB8CA30020872F /* ViewController.swift in Sources */,
 				790A1A7A22F3628D00B4B0CE /* CAStreamBasicDescription.swift in Sources */,
-				79EB777822EB8D190020872F /* AudioCapture.swift in Sources */,
+				79C5DACA22F37E0500326714 /* DCRejectionFilter.swift in Sources */,
+				79EB777822EB8D190020872F /* AudioCaptureToFileController.swift in Sources */,
 				79EB777922EB8D190020872F /* AudioHelpers.swift in Sources */,
 				79EB774922EB8CA30020872F /* AppDelegate.swift in Sources */,
 				792E090F22F0915600C46113 /* AudioBufferController.swift in Sources */,
