@@ -12,7 +12,7 @@
 		790B53B422F0A85700BBD200 /* CoreAudio.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 790B53B222F0A85700BBD200 /* CoreAudio.framework */; };
 		790B53B522F0A85700BBD200 /* CoreAudioKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 790B53B322F0A85700BBD200 /* CoreAudioKit.framework */; };
 		790B53B722F0A86300BBD200 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 790B53B622F0A86300BBD200 /* AudioToolbox.framework */; };
-		792E090F22F0915600C46113 /* AudioBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 792E090E22F0915600C46113 /* AudioBuffer.swift */; };
+		792E090F22F0915600C46113 /* AudioBufferController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 792E090E22F0915600C46113 /* AudioBufferController.swift */; };
 		79EB774922EB8CA30020872F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB774822EB8CA30020872F /* AppDelegate.swift */; };
 		79EB774B22EB8CA30020872F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79EB774A22EB8CA30020872F /* ViewController.swift */; };
 		79EB774E22EB8CA30020872F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 79EB774C22EB8CA30020872F /* Main.storyboard */; };
@@ -46,7 +46,7 @@
 		790B53B222F0A85700BBD200 /* CoreAudio.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudio.framework; path = System/Library/Frameworks/CoreAudio.framework; sourceTree = SDKROOT; };
 		790B53B322F0A85700BBD200 /* CoreAudioKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreAudioKit.framework; path = System/Library/Frameworks/CoreAudioKit.framework; sourceTree = SDKROOT; };
 		790B53B622F0A86300BBD200 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
-		792E090E22F0915600C46113 /* AudioBuffer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioBuffer.swift; sourceTree = "<group>"; };
+		792E090E22F0915600C46113 /* AudioBufferController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioBufferController.swift; sourceTree = "<group>"; };
 		79EB774522EB8CA30020872F /* AudioHelpers-CoreML.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "AudioHelpers-CoreML.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		79EB774822EB8CA30020872F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		79EB774A22EB8CA30020872F /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -126,7 +126,7 @@
 			isa = PBXGroup;
 			children = (
 				79EB774822EB8CA30020872F /* AppDelegate.swift */,
-				792E090E22F0915600C46113 /* AudioBuffer.swift */,
+				792E090E22F0915600C46113 /* AudioBufferController.swift */,
 				79EB777622EB8D190020872F /* AudioCapture.swift */,
 				79EB777722EB8D190020872F /* AudioHelpers.swift */,
 				790A1A7B22F3631800B4B0CE /* CADebugMacros.swift */,
@@ -292,7 +292,7 @@
 				79EB777822EB8D190020872F /* AudioCapture.swift in Sources */,
 				79EB777922EB8D190020872F /* AudioHelpers.swift in Sources */,
 				79EB774922EB8CA30020872F /* AppDelegate.swift in Sources */,
-				792E090F22F0915600C46113 /* AudioBuffer.swift in Sources */,
+				792E090F22F0915600C46113 /* AudioBufferController.swift in Sources */,
 				790A1A7C22F3631800B4B0CE /* CADebugMacros.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
