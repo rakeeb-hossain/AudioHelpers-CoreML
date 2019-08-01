@@ -21,7 +21,7 @@ import CoreAudio
 
 struct EffectState {
     var rioUnit: AudioUnit?
-    var asbd: AudioStreamBasicDescription?
+    var asbd: CAStreamBasicDescription?
     var sineFrequency: Float32?
     var sinePhase: Float32?
 }
@@ -34,28 +34,12 @@ func InputModulatingRenderCallback(
     inNumberFrames:UInt32,
     ioData:UnsafeMutablePointer<AudioBufferList>?) -> OSStatus {
     
-    let bufferSizeBytes = Int(inNumberFrames * 8)
-    
-    var bufferlist = AudioBufferList.allocate(maximumBuffers: 2)
-    bufferlist[0].mNumberChannels = 1
-    bufferlist[0].mDataByteSize = UInt32(bufferSizeBytes)
-    bufferlist[0].mData = malloc(bufferSizeBytes)
-    
-    bufferlist[1].mNumberChannels = 1
-    bufferlist[1].mDataByteSize = UInt32(bufferSizeBytes)
-    bufferlist[1].mData = malloc(bufferSizeBytes)
-
-    print(bufferlist[0])
-    
     var effectState = inRefCon.assumingMemoryBound(to: EffectState.self)
-    var status = AudioUnitRender(effectState.pointee.rioUnit!, ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, bufferlist.unsafeMutablePointer)
-    /*
     let delegate = unsafeBitCast(inRefCon, to: AURenderCallbackDelegate.self)
     status = delegate.performRender(ioActionFlags: ioActionFlags, inTimeStamp: inTimeStamp, inBusNumber: inBusNumber, inNumberFrames: inNumberFrames, ioData: ioData!)
     if (status != 0) {
         
     }
-     */
     return noErr
 }
 
@@ -91,7 +75,7 @@ class AudioBuffer: NSObject, AURenderCallbackDelegate {
             #elseif swift(>=4.0)
             try recordingSession.setCategory(AVAudioSessionCategoryPlayAndRecord, mode: AVAudioSessionModeDefault, options: AVAudioSessionCategoryOptions.defaultToSpeaker)
             #endif
-            try recordingSession.setActive(true)
+
         } catch {
             print("Activating record session failed")
             return false
@@ -111,6 +95,12 @@ class AudioBuffer: NSObject, AURenderCallbackDelegate {
             return false
         }
         
+        do {
+            try recordingSession.setActive(true)
+        } catch {
+            print("Could not start recording session.")
+            return false
+        }
         
         // Describe the audio unit
         var audioCompDesc: AudioComponentDescription = AudioComponentDescription()
@@ -141,36 +131,29 @@ class AudioBuffer: NSObject, AURenderCallbackDelegate {
             return false
         }
         
-        var myABSD = AudioStreamBasicDescription()
-
-        myABSD.mSampleRate = 16000.0
-        myABSD.mFormatID = kAudioFormatLinearPCM
-        myABSD.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagsNativeEndian | kAudioFormatFlagIsPacked
-        myABSD.mBytesPerPacket = 2
-        myABSD.mFramesPerPacket = 1
-        myABSD.mBytesPerFrame = 2
-        myABSD.mChannelsPerFrame = 1
-        myABSD.mBitsPerChannel = 16
-        
         // Setup stream format
-        error = AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, bus0, &myABSD, UInt32(MemoryLayout.size(ofValue: myABSD)))
-        error = error | AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, bus0, &myABSD, UInt32(MemoryLayout.size(ofValue: myABSD)))
+        var ioFormat = CAStreamBasicDescription(sampleRate: 16000, numChannels: 1, pcmf: .float32, isInterleaved: false)
+        error = AudioUnitSetProperty(dataPtr.pointee.rioUnit!, AudioUnitPropertyID(kAudioUnitProperty_StreamFormat), AudioUnitScope(kAudioUnitScope_Output), 1, &ioFormat, SizeOf32(ioFormat))
+        error = error | AudioUnitSetProperty(dataPtr.pointee.rioUnit!, AudioUnitPropertyID(kAudioUnitProperty_StreamFormat), AudioUnitScope(kAudioUnitScope_Input), 0, &ioFormat, SizeOf32(ioFormat))
 
         // Setup the maximum number of sample frames the render callback can expect in each call of the render function
         var maxFramesPerSlice: UInt32 = 4096
-        error = error | AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_MaximumFramesPerSlice, kAudioUnitScope_Global, bus0, &maxFramesPerSlice, UInt32(MemoryLayout.size(ofValue: maxFramesPerSlice)))
+        error = error | AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_MaximumFramesPerSlice, kAudioUnitScope_Global, bus0, &maxFramesPerSlice, SizeOf32(UInt32.self))
         
         if (error != 0) {
             print(String(error) + ": Couldn't set ASBD for RIO input/output")
             return false
         }
         
-        dataPtr.pointee.asbd = myABSD
+        var propSize = SizeOf32(UInt32.self)
+        error = AudioUnitGetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_MaximumFramesPerSlice, kAudioUnitScope_Global, 0, &maxFramesPerSlice, &propSize)
+
+        dataPtr.pointee.asbd = ioFormat
         dataPtr.pointee.sineFrequency = 30
         dataPtr.pointee.sinePhase = 0
         
-        var callbackStruct = AURenderCallbackStruct(inputProc: InputModulatingRenderCallback, inputProcRefCon: Unmanaged.passUnretained(self).toOpaque())
-        error = AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioOutputUnitProperty_SetInputCallback, kAudioUnitScope_Global, bus0, &callbackStruct, UInt32(MemoryLayout.size(ofValue: callbackStruct)))
+        var callbackStruct = AURenderCallbackStruct(inputProc: InputModulatingRenderCallback, inputProcRefCon: dataPtr)
+        error = AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, bus0, &callbackStruct, UInt32(MemoryLayout.size(ofValue: callbackStruct)))
         
         if (error != 0) {
             print(String(error) + ": Couldn't set RIO's input callback on bus 0")
@@ -183,6 +166,7 @@ class AudioBuffer: NSObject, AURenderCallbackDelegate {
             print(String(error) + ": Couldn't initialize the RIO unit")
             return false
         }
+        
         print("Setup successful")
 
         return true
