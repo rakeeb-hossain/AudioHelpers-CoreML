@@ -11,6 +11,14 @@ import AVFoundation
 import AudioToolbox
 import CoreAudio
 
+@objc protocol AURenderCallbackDelegate {
+    func performRender(ioActionFlags: UnsafeMutablePointer<AudioUnitRenderActionFlags>,
+                       inTimeStamp: UnsafePointer<AudioTimeStamp>,
+                       inBusNumber: UInt32,
+                       inNumberFrames: UInt32,
+                       ioData: UnsafeMutablePointer<AudioBufferList>) -> OSStatus
+}
+
 struct EffectState {
     var rioUnit: AudioUnit?
     var asbd: AudioStreamBasicDescription?
@@ -26,21 +34,33 @@ func InputModulatingRenderCallback(
     inNumberFrames:UInt32,
     ioData:UnsafeMutablePointer<AudioBufferList>?) -> OSStatus {
     
-    var a = AudioBufferList()
-    a.mNumberBuffers = 1
-    a.mBuffers.mData = nil
+    let bufferSizeBytes = Int(inNumberFrames * 8)
+    
+    var bufferlist = AudioBufferList.allocate(maximumBuffers: 2)
+    bufferlist[0].mNumberChannels = 1
+    bufferlist[0].mDataByteSize = UInt32(bufferSizeBytes)
+    bufferlist[0].mData = malloc(bufferSizeBytes)
+    
+    bufferlist[1].mNumberChannels = 1
+    bufferlist[1].mDataByteSize = UInt32(bufferSizeBytes)
+    bufferlist[1].mData = malloc(bufferSizeBytes)
+
+    print(bufferlist[0])
     
     var effectState = inRefCon.assumingMemoryBound(to: EffectState.self)
-    let bus1: UInt32 = 1
-    var error = AudioUnitRender(effectState.pointee.rioUnit!, ioActionFlags, inTimeStamp, bus1, inNumberFrames, &a)
-    
-    if (error != 0) {
-        print(a.mNumberBuffers)
+    var status = AudioUnitRender(effectState.pointee.rioUnit!, ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, bufferlist.unsafeMutablePointer)
+    /*
+    let delegate = unsafeBitCast(inRefCon, to: AURenderCallbackDelegate.self)
+    status = delegate.performRender(ioActionFlags: ioActionFlags, inTimeStamp: inTimeStamp, inBusNumber: inBusNumber, inNumberFrames: inNumberFrames, ioData: ioData!)
+    if (status != 0) {
+        
     }
+     */
     return noErr
 }
 
-class AudioBuffer: NSObject {
+@objc (AudioBuffer)
+class AudioBuffer: NSObject, AURenderCallbackDelegate {
     
     let dataPtr = UnsafeMutablePointer<EffectState>.allocate(capacity: 1)
 
@@ -55,7 +75,7 @@ class AudioBuffer: NSObject {
     }
     
     func setupAudio(_ dataPtr: UnsafeMutablePointer<EffectState>) -> Bool {
-        // Init AVAudioSession
+        // Init and setup recording session (AVAudioSession)
         var recordingSession: AVAudioSession = AVAudioSession.sharedInstance()
         var hardwareSampleRate: Double
         var error: OSStatus
@@ -76,6 +96,21 @@ class AudioBuffer: NSObject {
             print("Activating record session failed")
             return false
         }
+        
+        do {
+            try recordingSession.setPreferredSampleRate(16000.0)
+        } catch {
+            print("Could not setup audio sample rate")
+            return false
+        }
+        
+        do {
+            try recordingSession.setPreferredIOBufferDuration(0.005)
+        } catch {
+            print("Could not set buffer durations")
+            return false
+        }
+        
         
         // Describe the audio unit
         var audioCompDesc: AudioComponentDescription = AudioComponentDescription()
@@ -107,7 +142,7 @@ class AudioBuffer: NSObject {
         }
         
         var myABSD = AudioStreamBasicDescription()
-        print(hardwareSampleRate)
+
         myABSD.mSampleRate = 16000.0
         myABSD.mFormatID = kAudioFormatLinearPCM
         myABSD.mFormatFlags = kAudioFormatFlagIsSignedInteger | kAudioFormatFlagsNativeEndian | kAudioFormatFlagIsPacked
@@ -117,10 +152,14 @@ class AudioBuffer: NSObject {
         myABSD.mChannelsPerFrame = 1
         myABSD.mBitsPerChannel = 16
         
+        // Setup stream format
         error = AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, bus0, &myABSD, UInt32(MemoryLayout.size(ofValue: myABSD)))
-
         error = error | AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_StreamFormat, kAudioUnitScope_Input, bus0, &myABSD, UInt32(MemoryLayout.size(ofValue: myABSD)))
 
+        // Setup the maximum number of sample frames the render callback can expect in each call of the render function
+        var maxFramesPerSlice: UInt32 = 4096
+        error = error | AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_MaximumFramesPerSlice, kAudioUnitScope_Global, bus0, &maxFramesPerSlice, UInt32(MemoryLayout.size(ofValue: maxFramesPerSlice)))
+        
         if (error != 0) {
             print(String(error) + ": Couldn't set ASBD for RIO input/output")
             return false
@@ -130,7 +169,7 @@ class AudioBuffer: NSObject {
         dataPtr.pointee.sineFrequency = 30
         dataPtr.pointee.sinePhase = 0
         
-        var callbackStruct = AURenderCallbackStruct(inputProc: InputModulatingRenderCallback, inputProcRefCon: dataPtr)
+        var callbackStruct = AURenderCallbackStruct(inputProc: InputModulatingRenderCallback, inputProcRefCon: Unmanaged.passUnretained(self).toOpaque())
         error = AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioOutputUnitProperty_SetInputCallback, kAudioUnitScope_Global, bus0, &callbackStruct, UInt32(MemoryLayout.size(ofValue: callbackStruct)))
         
         if (error != 0) {
@@ -145,10 +184,22 @@ class AudioBuffer: NSObject {
             return false
         }
         print("Setup successful")
-        // Set format for output (bus 0)
+
         return true
     }
     
+    func performRender(ioActionFlags: UnsafeMutablePointer<AudioUnitRenderActionFlags>, inTimeStamp: UnsafePointer<AudioTimeStamp>, inBusNumber: UInt32, inNumberFrames: UInt32, ioData: UnsafeMutablePointer<AudioBufferList>) -> OSStatus {
+        let ioPtr = UnsafeMutableAudioBufferListPointer(ioData)
+        
+        let bus1: UInt32 = 1
+        var err = AudioUnitRender(dataPtr.pointee.rioUnit!, ioActionFlags, inTimeStamp, bus1, inNumberFrames, ioData)
+        
+        for i in 0..<ioPtr.count {
+            memset(ioPtr[i].mData, 0, Int(ioPtr[i].mDataByteSize))
+        }
+
+        return err
+    }
     /*
     private let InputModulatingRenderCallback: AURenderCallback? = {  inRefCon, ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, ioData in
         print("Finished")
