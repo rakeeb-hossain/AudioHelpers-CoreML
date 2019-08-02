@@ -47,7 +47,6 @@ func InputModulatingRenderCallback(
 class AudioBufferController: NSObject, AURenderCallbackDelegate {
     
     let dataPtr = UnsafeMutablePointer<EffectState>.allocate(capacity: 1)
-    var bufferHelper: BufferHelper!
     var bufferManager: BufferManager!
 
     override init() {
@@ -170,7 +169,6 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
             return false
         }
         
-        bufferHelper = BufferHelper()
         bufferManager = BufferManager(maxFramesPerSlice: Int(maxFramesPerSlice))
         print("Setup successful")
 
@@ -182,8 +180,12 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
         var ioPtr = UnsafeMutableAudioBufferListPointer(ioData)
         let bus1: UInt32 = 1
         var err = AudioUnitRender(dataPtr.pointee.rioUnit!, ioActionFlags, inTimeStamp, bus1, inNumberFrames, ioData)
-        
-        bufferManager.memcpyAudioToFFTBuffer(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), inNumberFrames)
+        if (bufferManager.needsNewFFTData > 0) {
+            bufferManager.memcpyAudioToFFTBuffer(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), inNumberFrames)
+        }
+        if (bufferManager.hasNewFFTData > 0) {
+            
+        }
         // At this point, you can either 1. save your buffers to the BufferManager class (in the case of getting the correctly-sized inputs for your CoreML model, THEN apply any effects), OR 2. you can apply the effects before in case you don't need a fixed size input
         
         // 1. Save to BufferManager, and when BufferManager's audiobuffer exceeds set size, apply effects and/or feed into model

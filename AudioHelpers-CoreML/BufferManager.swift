@@ -10,16 +10,22 @@ import UIKit
 
 class BufferManager: NSObject {
 
-    private var mFFTInputBuffer: UnsafeMutablePointer<Float32>?
+    var mFFTInputBuffer: UnsafeMutablePointer<Float32>?
     private var mFFTInputBufferFrameIndex: Int
+    private var mFFTInputBufferLoopingFrameIndex: Int
     private var mFFTInputBufferLen: Int
+    let bufferSize = 4160
     
     var hasNewFFTData: Int32 = 0 // volatile
     var needsNewFFTData: Int32 = 1 // volatile
+
+    var semaphore = DispatchSemaphore(value: 2)
+    var semaphoreCounter: Int32 = 1
     
     init(maxFramesPerSlice: Int) {
         mFFTInputBufferLen = maxFramesPerSlice
         mFFTInputBufferFrameIndex = 0
+        mFFTInputBufferLoopingFrameIndex = 0
         mFFTInputBuffer = UnsafeMutablePointer.allocate(capacity: maxFramesPerSlice)
     }
     
@@ -28,14 +34,16 @@ class BufferManager: NSObject {
     }
     
     func memcpyAudioToFFTBuffer(_ inData: UnsafeMutablePointer<Float32>, _ nFrames: UInt32) {
-        let framesToCopy = min(Int(nFrames), mFFTInputBufferLen - mFFTInputBufferFrameIndex)
-        if (framesToCopy != 0) {
-            memcpy(mFFTInputBuffer?.advanced(by: mFFTInputBufferFrameIndex*MemoryLayout<Float32>.size), inData, size_t(framesToCopy*MemoryLayout<Float32>.size))
-            mFFTInputBufferFrameIndex += framesToCopy
-            if mFFTInputBufferFrameIndex >= mFFTInputBufferLen {
-                print("Filled with: " + String(mFFTInputBufferFrameIndex) + " elements")
-                OSAtomicIncrement32(&hasNewFFTData)
-                OSAtomicDecrement32(&needsNewFFTData)
+        let framesToCopy = Int(nFrames)
+        memcpy(mFFTInputBuffer?.advanced(by: mFFTInputBufferFrameIndex*MemoryLayout<Float32>.size), inData, size_t(framesToCopy * MemoryLayout<Float32>.size))
+        mFFTInputBufferFrameIndex += framesToCopy
+        if mFFTInputBufferFrameIndex >= mFFTInputBufferLen {
+            OSAtomicIncrement32(&hasNewFFTData)
+            OSAtomicDecrement32(&needsNewFFTData)
+            DispatchQueue.global().async {
+                sleep(1)
+                OSAtomicDecrement32(&self.hasNewFFTData)
+                OSAtomicIncrement32(&self.needsNewFFTData)
             }
         }
     }
