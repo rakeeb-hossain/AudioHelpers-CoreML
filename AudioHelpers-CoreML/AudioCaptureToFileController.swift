@@ -23,6 +23,7 @@
  10) Spectral RollOff Point.
  11) Spectral Variability.
  12) Zero Crossings.
+ 13) dB
  
 */
 

@@ -23,6 +23,10 @@ class BufferHelper {
             mY1 = ioData[i]
         }
     }
+    
+    func calculateDecibels(_ ioData: UnsafeMutablePointer<Float32>, numFrames: UInt32) -> Float32 {
+        return 0.0
+    }
 }
 
 

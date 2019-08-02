@@ -1,10 +1,12 @@
-//
-//  AudioBuffer.swift
-//  AudioHelpers-CoreML
-//
-//  Created by Rakeeb Hossain on 2019-07-30.
-//  Copyright © 2019 Rakeeb Hossain. All rights reserved.
-//
+////////////////////////////////////////////////////////////////////
+///                                                              ///
+///   AudioHelpers-CoreML                                        ///
+///                                                              ///
+///   AudioCapture is a class that can be easily imported to a   ///
+///   project for capturing audio to a file. The inputs and      ///
+///   outputs can be customized accordingly.                     ///
+///                                                              ///
+////////////////////////////////////////////////////////////////////
 
 import UIKit
 import AVFoundation
@@ -35,7 +37,6 @@ func InputModulatingRenderCallback(
     inNumberFrames:UInt32,
     ioData:UnsafeMutablePointer<AudioBufferList>?) -> OSStatus {
     
-    print(inNumberFrames)
     var effectState = inRefCon.assumingMemoryBound(to: EffectState.self)
     let delegate = unsafeBitCast(effectState.pointee.controllerInstance!, to: AURenderCallbackDelegate.self)
     let success = delegate.performRender(ioActionFlags: ioActionFlags, inTimeStamp: inTimeStamp, inBusNumber: inBusNumber, inNumberFrames: inNumberFrames, ioData: ioData!)
@@ -47,7 +48,8 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
     
     let dataPtr = UnsafeMutablePointer<EffectState>.allocate(capacity: 1)
     var bufferHelper: BufferHelper!
-    
+    var bufferManager: BufferManager!
+
     override init() {
         super.init()
         defer {dataPtr.deallocate()}
@@ -137,7 +139,7 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
         error = error | AudioUnitSetProperty(dataPtr.pointee.rioUnit!, AudioUnitPropertyID(kAudioUnitProperty_StreamFormat), AudioUnitScope(kAudioUnitScope_Input), 0, &ioFormat, SizeOf32(ioFormat))
 
         // Setup the maximum number of sample frames the render callback can expect in each call of the render function
-        var maxFramesPerSlice: UInt32 = 4096
+        var maxFramesPerSlice: UInt32 = 4160
         error = error | AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_MaximumFramesPerSlice, kAudioUnitScope_Global, bus0, &maxFramesPerSlice, SizeOf32(UInt32.self))
         
         if (error != 0) {
@@ -169,6 +171,7 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
         }
         
         bufferHelper = BufferHelper()
+        bufferManager = BufferManager(maxFramesPerSlice: Int(maxFramesPerSlice))
         print("Setup successful")
 
         return true
@@ -180,30 +183,32 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
         let bus1: UInt32 = 1
         var err = AudioUnitRender(dataPtr.pointee.rioUnit!, ioActionFlags, inTimeStamp, bus1, inNumberFrames, ioData)
         
-        print(type(of: ioPtr[0].mData!.assumingMemoryBound(to: Float32.self)))
+        bufferManager.memcpyAudioToFFTBuffer(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), inNumberFrames)
+        // At this point, you can either 1. save your buffers to the BufferManager class (in the case of getting the correctly-sized inputs for your CoreML model, THEN apply any effects), OR 2. you can apply the effects before in case you don't need a fixed size input
+        
+        // 1. Save to BufferManager, and when BufferManager's audiobuffer exceeds set size, apply effects and/or feed into model
+        
+        // 2. Apply effects immediately and feed into model
+        
+        //print(type(of: ioPtr[0].mData!.assumingMemoryBound(to: Float32.self)))
         
         // Looping through audio buffer bytes
         /*
         for buffer in ioPtr {
-            let i16bufptr = UnsafeBufferPointer(start: ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), count: Int(inNumberFrames))
-            let arr = Array(i16bufptr)
+            let bufptr = UnsafeBufferPointer(start: buffer.mData!.assumingMemoryBound(to: Float32.self), count: Int(inNumberFrames))
+            let arr = Array(bufptr)
             for i in arr {
                 print(i)
             }
         }
-        */
+         */
+        
         
         // Removing DC component of audio waveform signal
-        bufferHelper.removeDCInplace(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), numFrames: inNumberFrames)
-
+        // bufferHelper.removeDCInplace(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), numFrames: inNumberFrames)
+        
         return noErr
     }
-    /*
-    private let InputModulatingRenderCallback: AURenderCallback? = {  inRefCon, ioActionFlags, inTimeStamp, inBusNumber, inNumberFrames, ioData in
-        print("Finished")
-        return(0)
-    }
- */
     
     func setupNotifications() {
         // Handle interruptions
@@ -219,175 +224,4 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
         let status = AudioOutputUnitStop(dataPtr.pointee.rioUnit!)
         print(status)
     }
-    
-    
-    
-    
-    
-    /*
-    var audioStreamFormat: AudioStreamBasicDescription!
-    var inQueue: AudioQueueRef? = nil
-    var audioBuffer: AudioQueueBuffer!
-    
-    struct BufferRecordSettings {
-        let format: AudioFormatID = kAudioFormatLinearPCM
-        let formatFlags: UInt32 = kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked
-        let sampleRate: Double = 16000.0
-        let numChannels: UInt32 = 1
-    }
-    
-    struct AQRecorderState {
-        let mDataFormat: AudioStreamBasicDescription?
-        let mQueue: AudioQueueRef?
-        let mBuffers: [AudioQueueBufferRef]?
-        let bufferByteSize: UInt32?
-        let mCurrentPacket: UInt32?
-        let mIsRunning: Bool?
-    }
-    
-    var recordSettings = BufferRecordSettings()
-    var aqData = AQRecorderState(mDataFormat: nil, mQueue: nil, mBuffers: nil, bufferByteSize: nil, mCurrentPacket: nil, mIsRunning: false)
-    
-    var isReady = false
-    var isRecording = false
-    var recordingStarted = false
-    var recordingTime = CACurrentMediaTime()
-    var elapsed = 0.0
-    //func audioQueueInputCallback(ptr: Optional<UnsafeMutableRawPointer>?, queueRef: AudioQueueBufferRef, bufferRef: AudioQueueBufferRef, timePtr: UnsafePointer<AudioTimeStamp>, n: UInt32, packetInfo: Optional<UnsafePointer<AudioStreamPacketDescription>>) -> Void {}
-    
-    private let audioQueueInputCallback: AudioQueueInputCallback = {
-        userData, queue, bufferRef, startTimeRef, numPackets, packetDescriptions in
-        // Process your audio once it has completed
-        print("Finished")
-    }
-    
-    override init() {
-        super.init()
-        setUpAudio()
-    }
-    
-    func setUpAudio() {
-        audioStreamFormat = AudioStreamBasicDescription(
-            mSampleRate: self.recordSettings.sampleRate,
-            mFormatID: self.recordSettings.format,
-            mFormatFlags: self.recordSettings.formatFlags,
-            mBytesPerPacket: 2 * self.recordSettings.numChannels,
-            mFramesPerPacket: 1,
-            mBytesPerFrame: 2 * self.recordSettings.numChannels,
-            mChannelsPerFrame: self.recordSettings.numChannels,
-            mBitsPerChannel: 16,
-            mReserved: 0)
-        
-        print(audioStreamFormat!)
-        let status = AudioQueueNewInput(&audioStreamFormat, audioQueueInputCallback, nil, nil, nil, 0, &inQueue)
-        
-        if (status == 0) {
-            print("Setup successful")
-            self.aqData = AQRecorderState(
-                mDataFormat: audioStreamFormat,
-                mQueue: inQueue!,
-                mBuffers: [AudioQueueBufferRef](),
-                bufferByteSize: 32,
-                mCurrentPacket: 0,
-                mIsRunning: false
-            )
-            isReady = true
-        }
-    }
-    
-    // Starts an indefinite audio recording
-    public func startRecording() {
-        if (!isReady) {
-            print("Audio must be successfully initialized first")
-        } else if (isRecording) {
-            print("Audio already recording")
-        } else {
-            let status = AudioQueueStart(inQueue!, nil)
-            if (status == 0) {
-                recordingTime = CACurrentMediaTime()
-                isRecording = true
-                
-                if (!recordingStarted) {
-                    elapsed = 0
-                    recordingStarted = true
-                }
-                print("Recording started...")
-            } else {
-                print("Failed to start recording")
-            }
-        }
-    }
-    
-    // Starts an audio recording of fixed length; this cannot be paused or stopped; terminates automatically
-    public func startRecording(milliseconds: Int, completionHandler: @escaping (Bool) -> Void) {
-        if (!isReady) {
-            print("Audio must be successfully initialized first")
-        } else if (isRecording) {
-            print("Audio already recording")
-        } else {
-            let status = AudioQueueStart(inQueue!, nil)
-            if (status == 0) {
-                recordingTime = CACurrentMediaTime()
-                isRecording = true
-                
-                if (!recordingStarted) {
-                    elapsed = 0
-                    recordingStarted = true
-                }
-                print("Timed recording started...")
-                
-                DispatchQueue.global().async {
-                    sleep(2)
-                    let status = AudioQueueStop(self.inQueue!, true)
-                    if (status == 0) {
-                        self.isRecording = false
-                        self.recordingStarted = false
-                        print("Stopped timed recording.")
-                        completionHandler(true)
-                    } else {
-                        print("Failed to stop timed recording.")
-                        completionHandler(false)
-                    }
-                }
-            } else {
-                print("Failed to start timed recording.")
-            }
-        }
-    }
-    
-    // Pauses currently playing audio recording
-    public func pauseRecording() {
-        if (!isReady) {
-            print("Audio must be successfully initialized first")
-        } else if (!isRecording) {
-            print("Audio already paused/stopped")
-        } else {
-            let status = AudioQueuePause(inQueue!)
-            if (status == 0) {
-                isRecording = false
-                elapsed += (CACurrentMediaTime() - recordingTime)
-                recordingTime = 0
-                print("Recording paused...")
-            } else {
-                print("Failed to start recording")
-            }
-        }
-    }
-    
-    // Terminates currently playing audio recording
-    public func stopRecording() {
-        if (!isReady) {
-            print("Audio must be successfully initialized first")
-        } else {
-            let status = AudioQueueStop(inQueue!, true)
-            if (status == 0) {
-                isRecording = false
-                recordingStarted = false
-                print("Stopped.")
-            } else {
-                print("Failed to stop.")
-            }
-        }
-    }
- */
 }
