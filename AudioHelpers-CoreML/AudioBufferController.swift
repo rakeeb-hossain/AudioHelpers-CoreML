@@ -48,6 +48,8 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
     
     let dataPtr = UnsafeMutablePointer<EffectState>.allocate(capacity: 1)
     var bufferManager: BufferManager!
+    var realData = [Float](repeating: 0.0, count: Int(4160/2))
+    var imagData = [Float](repeating: 0.0, count: Int(4160/2))
 
     override init() {
         super.init()
@@ -184,7 +186,8 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
             bufferManager.memcpyAudioToFFTBuffer(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), inNumberFrames)
         }
         if (bufferManager.hasNewFFTData > 0) {
-            
+            fft_in_place(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), realData: &realData, imagData: &imagData, nFrames: 4160)
+            print(imagData[50])
         }
         // At this point, you can either 1. save your buffers to the BufferManager class (in the case of getting the correctly-sized inputs for your CoreML model, THEN apply any effects), OR 2. you can apply the effects before in case you don't need a fixed size input
         
