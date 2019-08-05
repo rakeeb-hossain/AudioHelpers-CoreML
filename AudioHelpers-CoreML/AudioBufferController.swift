@@ -18,7 +18,11 @@ import CoreAudio
                        inTimeStamp: UnsafePointer<AudioTimeStamp>,
                        inBusNumber: UInt32,
                        inNumberFrames: UInt32,
-                       ioData: UnsafeMutablePointer<AudioBufferList>) -> OSStatus
+                       ioData: UnsafeMutablePointer<AudioBufferList>)
+}
+
+public protocol AudioBufferControllerDelegate: class {
+    func bufferFilled(inData: UnsafeMutablePointer<Float32>)
 }
 
 struct EffectState {
@@ -39,7 +43,7 @@ func InputModulatingRenderCallback(
     
     var effectState = inRefCon.assumingMemoryBound(to: EffectState.self)
     let delegate = unsafeBitCast(effectState.pointee.controllerInstance!, to: AURenderCallbackDelegate.self)
-    let success = delegate.performRender(ioActionFlags: ioActionFlags, inTimeStamp: inTimeStamp, inBusNumber: inBusNumber, inNumberFrames: inNumberFrames, ioData: ioData!)
+    delegate.performRender(ioActionFlags: ioActionFlags, inTimeStamp: inTimeStamp, inBusNumber: inBusNumber, inNumberFrames: inNumberFrames, ioData: ioData!)
     return noErr
 }
 
@@ -47,10 +51,13 @@ func InputModulatingRenderCallback(
 class AudioBufferController: NSObject, AURenderCallbackDelegate {
     
     let dataPtr = UnsafeMutablePointer<EffectState>.allocate(capacity: 1)
+    weak var delegate: AudioBufferControllerDelegate?
     var bufferManager: BufferManager!
+    var fft: FFT!
     var realData = [Float](repeating: 0.0, count: Int(4160/2))
     var imagData = [Float](repeating: 0.0, count: Int(4160/2))
-
+    var recordSettings = RecordSettings()
+    
     override init() {
         super.init()
         defer {dataPtr.deallocate()}
@@ -171,24 +178,36 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
             return false
         }
         
+        fft = FFT()
+        fft.setup_fft(nFrames: 4160)
         bufferManager = BufferManager(maxFramesPerSlice: Int(maxFramesPerSlice))
         print("Setup successful")
 
         return true
     }
     
-    func performRender(ioActionFlags: UnsafeMutablePointer<AudioUnitRenderActionFlags>, inTimeStamp: UnsafePointer<AudioTimeStamp>, inBusNumber: UInt32, inNumberFrames: UInt32, ioData: UnsafeMutablePointer<AudioBufferList>) -> OSStatus {
+    func performRender(ioActionFlags: UnsafeMutablePointer<AudioUnitRenderActionFlags>, inTimeStamp: UnsafePointer<AudioTimeStamp>, inBusNumber: UInt32, inNumberFrames: UInt32, ioData: UnsafeMutablePointer<AudioBufferList>) -> Void {
         
         var ioPtr = UnsafeMutableAudioBufferListPointer(ioData)
         let bus1: UInt32 = 1
         var err = AudioUnitRender(dataPtr.pointee.rioUnit!, ioActionFlags, inTimeStamp, bus1, inNumberFrames, ioData)
+        if err == noErr {
+            bufferManager.memcpyAudioToFFTBuffer(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), inNumberFrames) { isBufferFilled, buffer in
+                if isBufferFilled {
+                    self.delegate?.bufferFilled(inData: buffer)
+                }
+            }
+        }
+        
+        /*
         if (bufferManager.needsNewFFTData > 0) {
             bufferManager.memcpyAudioToFFTBuffer(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), inNumberFrames)
         }
         if (bufferManager.hasNewFFTData > 0) {
-            fft_in_place(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), realData: &realData, imagData: &imagData, nFrames: 4160)
-            print(imagData[50])
+            fft.fft_in_place(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), realData: &realData, imagData: &imagData, nFrames: 4160)
+            var a = fft.calculateDecibels()
         }
+         */
         // At this point, you can either 1. save your buffers to the BufferManager class (in the case of getting the correctly-sized inputs for your CoreML model, THEN apply any effects), OR 2. you can apply the effects before in case you don't need a fixed size input
         
         // 1. Save to BufferManager, and when BufferManager's audiobuffer exceeds set size, apply effects and/or feed into model
@@ -211,8 +230,6 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
         
         // Removing DC component of audio waveform signal
         // bufferHelper.removeDCInplace(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), numFrames: inNumberFrames)
-        
-        return noErr
     }
     
     func setupNotifications() {

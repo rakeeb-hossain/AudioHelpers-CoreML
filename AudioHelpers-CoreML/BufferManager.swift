@@ -33,18 +33,18 @@ class BufferManager: NSObject {
         mFFTInputBuffer?.deallocate()
     }
     
-    func memcpyAudioToFFTBuffer(_ inData: UnsafeMutablePointer<Float32>, _ nFrames: UInt32) {
+    func memcpyAudioToFFTBuffer(_ inData: UnsafeMutablePointer<Float32>, _ nFrames: UInt32, completion: @escaping (Bool, UnsafeMutablePointer<Float32>) -> Void) {
         let framesToCopy = Int(nFrames)
         memcpy(mFFTInputBuffer?.advanced(by: mFFTInputBufferFrameIndex*MemoryLayout<Float32>.size), inData, size_t(framesToCopy * MemoryLayout<Float32>.size))
         mFFTInputBufferFrameIndex += framesToCopy
         if mFFTInputBufferFrameIndex >= mFFTInputBufferLen {
-            OSAtomicIncrement32(&hasNewFFTData)
-            OSAtomicDecrement32(&needsNewFFTData)
-            DispatchQueue.global().async {
-                sleep(1)
-                OSAtomicDecrement32(&self.hasNewFFTData)
-                OSAtomicIncrement32(&self.needsNewFFTData)
-            }
+            let bufptr: UnsafeMutablePointer<Float32> = UnsafeMutablePointer.allocate(capacity: mFFTInputBufferLen)
+            memcpy(bufptr, mFFTInputBuffer, size_t(mFFTInputBufferLen * MemoryLayout<Float32>.size))
+            mFFTInputBufferFrameIndex -= mFFTInputBufferLen
+            completion(true, bufptr)
+        } else {
+            var arr: [Float32] = [0.0]
+            completion(false, &arr)
         }
     }
 }

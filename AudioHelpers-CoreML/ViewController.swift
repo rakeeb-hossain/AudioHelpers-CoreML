@@ -51,6 +51,7 @@ class ViewController: UIViewController {
         }
         if example == 2 {
             audioBuffer = AudioBufferController()
+            audioBuffer.delegate = self
         }
     }
     /*
@@ -74,5 +75,13 @@ class ViewController: UIViewController {
 extension ViewController: AudioCaptureDelegate {
     func didFinishRecording(_ capture: AudioCapture, _ success: Bool, _ duration: Double) {
         print(duration)
+    }
+}
+
+extension ViewController: AudioBufferControllerDelegate {
+    func bufferFilled(inData: UnsafeMutablePointer<Float32>) {
+        let bufferPtr = UnsafeBufferPointer(start: inData, count: 4160)
+        let arr = Array(bufferPtr)
+        print(arr.count)
     }
 }
