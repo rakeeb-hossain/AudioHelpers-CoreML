@@ -239,11 +239,15 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
     
     func startRecording() {
         let status = AudioOutputUnitStart(dataPtr.pointee.rioUnit!)
-        print(status)
+        if status != noErr {
+            print("Error: " + String(status))
+        }
     }
     
     func stopRecording() {
         let status = AudioOutputUnitStop(dataPtr.pointee.rioUnit!)
-        print(status)
+        if status != noErr {
+            print("Error: " + String(status))
+        }
     }
 }

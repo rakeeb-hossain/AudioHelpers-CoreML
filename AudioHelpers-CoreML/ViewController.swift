@@ -80,8 +80,8 @@ extension ViewController: AudioCaptureDelegate {
 
 extension ViewController: AudioBufferControllerDelegate {
     func bufferFilled(inData: UnsafeMutablePointer<Float32>) {
-        let bufferPtr = UnsafeBufferPointer(start: inData, count: 4160)
-        let arr = Array(bufferPtr)
-        print(arr.count)
+        // This is where you receive your audio buffer that can now be edited freely, but make sure you free inData first!
+        
+        free(inData)
     }
 }
