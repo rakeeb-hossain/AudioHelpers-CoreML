@@ -14,13 +14,17 @@ var mX1: Float32 = 0.0
 var kAdjust0DB: Float32 = 1.5849e-13
 let kDefaultPoleDist: Float32 = 0.975
 
-func removeDCInplace(_ ioData: UnsafeMutablePointer<Float32>, numFrames: UInt32) {
+func removeDCInplace(ioData: UnsafeMutablePointer<Float32>, numFrames: UInt32) {
     for i in 0..<Int(numFrames) {
         let xCurr = ioData[i]
         ioData[i] = ioData[i] - mX1 + (kDefaultPoleDist * mY1)
         mX1 = xCurr
         mY1 = ioData[i]
     }
+}
+
+func hanning(window: UnsafeMutablePointer<Float32>, numFrames: UInt32) {
+    vDSP_hann_window(window, vDSP_Length(numFrames), Int32(vDSP_HANN_NORM))
 }
 
 class FFT: NSObject {
@@ -32,25 +36,25 @@ class FFT: NSObject {
     var output: DSPSplitComplex!
     var numfftFrames: Int!
     
-    func setup_fft(nFrames: Int) {
-        bufferLog2 = vDSP_Length(round(log2(Double(nFrames/2))))
+    func setup_fft(bufferLen: Int) {
+        bufferLog2 = vDSP_Length(round(log2(Double(bufferLen/2))))
         fftSetup = vDSP_create_fftsetup(bufferLog2, FFTRadix(kFFTRadix2))
-        fftLength = nFrames/2
-        fftNormFactor = 1.0 / Float(2 * nFrames)
+        fftLength = bufferLen/2
+        fftNormFactor = 1.0 / Float(2 * bufferLen)
         output = DSPSplitComplex(
             realp: UnsafeMutablePointer.allocate(capacity: fftLength),
             imagp: UnsafeMutablePointer.allocate(capacity: fftLength)
         )
-        numfftFrames = nFrames
+        numfftFrames = bufferLen
     }
-
-    func fft(_ audioData: UnsafePointer<Float32>?, nFrames: Int) -> [[Float]] {
+    
+    func fft(audioData: UnsafePointer<Float32>?, bufferLen: Int) -> [[Float]] {
         guard
             let audioData = audioData
         else { return [] }
         
-        if (numfftFrames != nFrames) {
-            setup_fft(nFrames: nFrames)
+        if (numfftFrames != bufferLen) {
+            setup_fft(bufferLen: bufferLen)
         }
         // Allocate real and imaginary buffers
         audioData.withMemoryRebound(to: DSPComplex.self, capacity: fftLength) {inAudioDataPtr in
@@ -67,13 +71,13 @@ class FFT: NSObject {
         return [Array(UnsafeBufferPointer(start: output.realp, count: fftLength)), Array(UnsafeBufferPointer(start: output.imagp, count: fftLength))]
     }
 
-    func rfft(_ audioData: UnsafePointer<Float32>?, nFrames: Int) -> [Float] {
+    func rfft(audioData: UnsafePointer<Float32>?, bufferLen: Int) -> [Float] {
         guard
             let audioData = audioData
         else { return [] }
         
-        if (numfftFrames != nFrames) {
-            setup_fft(nFrames: nFrames)
+        if (numfftFrames != bufferLen) {
+            setup_fft(bufferLen: bufferLen)
         }
         
         // Allocate real and imaginary buffers
@@ -91,13 +95,13 @@ class FFT: NSObject {
     }
 
 
-    func fft_in_place(_ audioData: UnsafePointer<Float32>?, realData: UnsafeMutablePointer<Float32>?, imagData: UnsafeMutablePointer<Float32>?, nFrames: Int) {
+    func fft_in_place(audioData: UnsafePointer<Float32>?, realData: UnsafeMutablePointer<Float32>?, imagData: UnsafeMutablePointer<Float32>?, bufferLen: Int) {
         guard
             let audioData = audioData
         else { return }
         
-        if (numfftFrames != nFrames) {
-            setup_fft(nFrames: nFrames)
+        if (numfftFrames != bufferLen) {
+            setup_fft(bufferLen: bufferLen)
         }
         
         // Allocate real and imaginary buffers
@@ -113,13 +117,13 @@ class FFT: NSObject {
         imagData![0] = 0.0
     }
 
-    func rfft_in_place(_ audioData: UnsafePointer<Float32>?, realData: UnsafeMutablePointer<Float32>?, nFrames: Int) {
+    func rfft_in_place(audioData: UnsafePointer<Float32>?, realData: UnsafeMutablePointer<Float32>?, bufferLen: Int) {
         guard
             let audioData = audioData
         else { return }
         
-        if (numfftFrames != nFrames) {
-            setup_fft(nFrames: nFrames)
+        if (numfftFrames != bufferLen) {
+            setup_fft(bufferLen: bufferLen)
         }
         
         // Allocate real and imaginary buffers

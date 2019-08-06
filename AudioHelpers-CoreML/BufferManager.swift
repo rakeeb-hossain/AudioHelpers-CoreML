@@ -43,7 +43,7 @@ class BufferManager: NSObject {
             mFFTInputBufferFrameIndex -= mFFTInputBufferLen
             completion(true, bufptr)
         } else {
-            var arr: [Float32] = [0.0]
+            var arr: [Float32] = []
             completion(false, &arr)
         }
     }

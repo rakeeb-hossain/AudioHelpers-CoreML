@@ -53,17 +53,15 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
     let dataPtr = UnsafeMutablePointer<EffectState>.allocate(capacity: 1)
     weak var delegate: AudioBufferControllerDelegate?
     var bufferManager: BufferManager!
-    var fft: FFT!
-    var realData = [Float](repeating: 0.0, count: Int(4160/2))
-    var imagData = [Float](repeating: 0.0, count: Int(4160/2))
     var recordSettings = RecordSettings()
+    var bufferLen: Int!
     
-    override init() {
+    init(nFrames: Int) {
         super.init()
         defer {dataPtr.deallocate()}
         dataPtr.initialize(to: EffectState())
         defer {dataPtr.deinitialize(count: 1)}
-
+        bufferLen = nFrames
         let status = setupAudio(dataPtr)
         setupNotifications()
     }
@@ -85,7 +83,7 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
             #elseif swift(>=4.0)
             try recordingSession.setCategory(AVAudioSessionCategoryPlayAndRecord, mode: AVAudioSessionModeDefault, options: AVAudioSessionCategoryOptions.defaultToSpeaker)
             #endif
-
+            
         } catch {
             print("Activating record session failed")
             return false
@@ -145,7 +143,7 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
         var ioFormat = CAStreamBasicDescription(sampleRate: 16000, numChannels: 1, pcmf: .float32, isInterleaved: false)
         error = AudioUnitSetProperty(dataPtr.pointee.rioUnit!, AudioUnitPropertyID(kAudioUnitProperty_StreamFormat), AudioUnitScope(kAudioUnitScope_Output), 1, &ioFormat, SizeOf32(ioFormat))
         error = error | AudioUnitSetProperty(dataPtr.pointee.rioUnit!, AudioUnitPropertyID(kAudioUnitProperty_StreamFormat), AudioUnitScope(kAudioUnitScope_Input), 0, &ioFormat, SizeOf32(ioFormat))
-
+        
         // Setup the maximum number of sample frames the render callback can expect in each call of the render function
         var maxFramesPerSlice: UInt32 = 4160
         error = error | AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_MaximumFramesPerSlice, kAudioUnitScope_Global, bus0, &maxFramesPerSlice, SizeOf32(UInt32.self))
@@ -157,12 +155,12 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
         
         var propSize = SizeOf32(UInt32.self)
         error = AudioUnitGetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_MaximumFramesPerSlice, kAudioUnitScope_Global, 0, &maxFramesPerSlice, &propSize)
-
+        
         dataPtr.pointee.asbd = ioFormat
         dataPtr.pointee.sineFrequency = 30
         dataPtr.pointee.sinePhase = 0
         dataPtr.pointee.controllerInstance = Unmanaged.passUnretained(self).toOpaque()
-
+        
         var callbackStruct = AURenderCallbackStruct(inputProc: InputModulatingRenderCallback, inputProcRefCon: dataPtr)
         error = AudioUnitSetProperty(dataPtr.pointee.rioUnit!, kAudioUnitProperty_SetRenderCallback, kAudioUnitScope_Input, bus0, &callbackStruct, UInt32(MemoryLayout.size(ofValue: callbackStruct)))
         
@@ -178,11 +176,9 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
             return false
         }
         
-        fft = FFT()
-        fft.setup_fft(nFrames: 4160)
         bufferManager = BufferManager(maxFramesPerSlice: Int(maxFramesPerSlice))
         print("Setup successful")
-
+        
         return true
     }
     
@@ -200,13 +196,13 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
         }
         
         /*
-        if (bufferManager.needsNewFFTData > 0) {
-            bufferManager.memcpyAudioToFFTBuffer(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), inNumberFrames)
-        }
-        if (bufferManager.hasNewFFTData > 0) {
-            fft.fft_in_place(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), realData: &realData, imagData: &imagData, nFrames: 4160)
-            var a = fft.calculateDecibels()
-        }
+         if (bufferManager.needsNewFFTData > 0) {
+         bufferManager.memcpyAudioToFFTBuffer(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), inNumberFrames)
+         }
+         if (bufferManager.hasNewFFTData > 0) {
+         fft.fft_in_place(ioPtr[0].mData!.assumingMemoryBound(to: Float32.self), realData: &realData, imagData: &imagData, nFrames: 4160)
+         var a = fft.calculateDecibels()
+         }
          */
         // At this point, you can either 1. save your buffers to the BufferManager class (in the case of getting the correctly-sized inputs for your CoreML model, THEN apply any effects), OR 2. you can apply the effects before in case you don't need a fixed size input
         
@@ -218,13 +214,13 @@ class AudioBufferController: NSObject, AURenderCallbackDelegate {
         
         // Looping through audio buffer bytes
         /*
-        for buffer in ioPtr {
-            let bufptr = UnsafeBufferPointer(start: buffer.mData!.assumingMemoryBound(to: Float32.self), count: Int(inNumberFrames))
-            let arr = Array(bufptr)
-            for i in arr {
-                print(i)
-            }
-        }
+         for buffer in ioPtr {
+         let bufptr = UnsafeBufferPointer(start: buffer.mData!.assumingMemoryBound(to: Float32.self), count: Int(inNumberFrames))
+         let arr = Array(bufptr)
+         for i in arr {
+         print(i)
+         }
+         }
          */
         
         

@@ -50,7 +50,7 @@ class ViewController: UIViewController {
             audioCapture.delegate = self
         }
         if example == 2 {
-            audioBuffer = AudioBufferController()
+            audioBuffer = AudioBufferController(nFrames: 4160)
             audioBuffer.delegate = self
         }
     }
